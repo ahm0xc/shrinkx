@@ -1,6 +1,9 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+
+import { compressImage } from './utils'
+
 import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
@@ -55,6 +58,24 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  ipcMain.handle('compress-image', async (event, { id, imagePath }) => {
+    console.log('compress-image', { id, imagePath })
+    try {
+      await compressImage(imagePath, {
+        onProgress: (progress) => {
+          console.log('🚀 ~ ipcMain.handle ~ progress:', progress)
+          event.sender.send(`compress-progress-${id}`, { progress })
+        },
+        onComplete: (compressedImagePath) => {
+          console.log('🚀 ~ ipcMain.handle ~ compressedImagePath:', compressedImagePath)
+          event.sender.send(`compress-complete-${id}`, { outputPath: compressedImagePath })
+        }
+      })
+    } catch (error) {
+      event.sender.send(`compress-error-${id}`, { error })
+    }
+  })
 
   createWindow()
 

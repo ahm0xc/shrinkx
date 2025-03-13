@@ -2,6 +2,8 @@ import React from 'react'
 import { FileImage, FileVideo, FileZip, Image, Play, Trash, Video } from '@phosphor-icons/react'
 import { useDropzone } from 'react-dropzone'
 import { nanoid } from 'nanoid'
+import fs from 'fs'
+import path from 'path'
 
 import { Slider } from '@renderer/components/ui/slider'
 import { Switch } from '@renderer/components/ui/switch'
@@ -22,8 +24,15 @@ type CustomFile = File & {
 export default function App() {
   const [activeTabIndex, setActiveTabIndex] = React.useState(0)
   const [files, setFiles] = React.useState<CustomFile[]>([])
+  const [isCompressing, setIsCompressing] = React.useState(false)
 
   const onDrop = React.useCallback((acceptedFiles: File[]) => {
+    const mappedFiles = acceptedFiles.map((file) => ({
+      ...file,
+      fullPath: fs.realpathSync(path.resolve(file.path)) // Get absolute path
+    }))
+    console.log('mappedFiles', mappedFiles)
+
     for (const file of acceptedFiles) {
       const isImage = file.type.startsWith('image/')
       const isVideo = file.type.startsWith('video/')
@@ -127,6 +136,22 @@ export default function App() {
   const onRemoveFile = React.useCallback((file: CustomFile) => {
     setFiles((prevFiles) => prevFiles.filter((f) => f.id !== file.id))
   }, [])
+
+  const handleCompress = React.useCallback(async () => {
+    console.log('compress')
+    setIsCompressing(true)
+    for (const file of files) {
+      await new Promise((resolve, reject) => {
+        window.electron.ipcRenderer.invoke('compress-image', { id: file.id, imagePath: file.path })
+        window.electron.ipcRenderer.on(`compress-complete-${file.id}`, (_, { outputPath }) => {
+          resolve(outputPath)
+        })
+        window.electron.ipcRenderer.on(`compress-error-${file.id}`, (_, { error }) => {
+          reject(error)
+        })
+      })
+    }
+  }, [files])
 
   return (
     <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
@@ -252,7 +277,9 @@ export default function App() {
             </div>
 
             <div aria-label="settings-footer" className="mt-auto">
-              <Button className="w-full">Compress</Button>
+              <Button className="w-full" disabled={isCompressing} onClick={handleCompress}>
+                Compress
+              </Button>
               <p className="text-sm text-foreground/50 text-center mt-2">
                 Estimated time: ~2 minutes
               </p>
