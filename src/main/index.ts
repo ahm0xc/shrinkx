@@ -3,7 +3,7 @@ import { basename, join, extname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { statSync } from 'fs'
 
-import { compressImage, getImagePreview, getVideoPreview } from './utils'
+import { compressImage, compressVideo, getImagePreview, getVideoPreview } from './utils'
 
 import icon from '../../resources/icon.png?asset'
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, ALL_EXTENSIONS } from '../shared/config'
@@ -107,21 +107,32 @@ app.whenReady().then(() => {
     return null
   })
 
-  ipcMain.handle('compress-image', async (event, { id, imagePath }) => {
-    console.log('compress-image', { id, imagePath })
+  ipcMain.on('compress-image', async (event, { id, path }) => {
+    console.log('compress-image', { id, path })
     try {
-      await compressImage(imagePath, {
-        onProgress: (progress) => {
-          console.log('🚀 ~ ipcMain.handle ~ progress:', progress)
-          event.sender.send(`compress-progress-${id}`, { progress })
-        },
-        onComplete: (compressedImagePath) => {
-          console.log('🚀 ~ ipcMain.handle ~ compressedImagePath:', compressedImagePath)
-          event.sender.send(`compress-complete-${id}`, { outputPath: compressedImagePath })
+      await compressImage(path, {
+        onComplete: (outputPath) => {
+          event.sender.send(`compress-image-complete-${id}`, { outputPath })
         }
       })
     } catch (error) {
-      event.sender.send(`compress-error-${id}`, { error })
+      event.sender.send(`compress-image-error-${id}`, { error })
+    }
+  })
+
+  ipcMain.on('compress-video', async (event, { id, path }) => {
+    console.log('compress-video', { id, path })
+    try {
+      await compressVideo(path, {
+        onProgress: (progress) => {
+          event.sender.send(`compress-video-progress-${id}`, { progress })
+        },
+        onComplete: (compressedVideoPath) => {
+          event.sender.send(`compress-video-complete-${id}`, { outputPath: compressedVideoPath })
+        }
+      })
+    } catch (error) {
+      event.sender.send(`compress-video-error-${id}`, { error })
     }
   })
 

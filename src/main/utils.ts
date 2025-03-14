@@ -1,5 +1,4 @@
 import { execa } from 'execa'
-import pngquant from 'pngquant-bin'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -18,11 +17,9 @@ export async function compressImage(
   imagePath: string,
   {
     quality = 80,
-    onProgress,
     onComplete
   }: {
     quality?: number
-    onProgress: (progress: number) => void
     onComplete: (compressedImagePath: string) => void
   }
 ) {
@@ -32,12 +29,9 @@ export async function compressImage(
       const minQuality = Math.max(0, Math.min(quality - 10, 100)) // Ensure a valid range
       const maxQuality = Math.max(minQuality + 10, Math.min(quality, 100))
 
-      const outputPath = path.join(
-        path.dirname(imagePath),
-        `compressed-${path.basename(imagePath)}`
-      )
+      const outputPath = path.join(os.tmpdir(), `compressed-${path.basename(imagePath)}`)
 
-      const process = execa(pngquant, [
+      const process = execa('pngquant', [
         `--quality=${minQuality}-${maxQuality}`,
         '--speed=1', // Slowest but best compression
         '--force', // Overwrite existing file if needed
@@ -46,17 +40,9 @@ export async function compressImage(
         imagePath
       ])
 
-      let progress = 0
-
-      process.stdout?.on('data', () => {
-        progress = Math.min(progress + 20, 100)
-        onProgress(progress)
-      })
-
       await process
 
-      // Ensure progress reaches 100% on completion
-      onProgress(100)
+      console.log('complete')
       onComplete(outputPath)
       resolve(outputPath)
     } catch (error) {
@@ -82,11 +68,9 @@ export async function compressVideo(
       // Map quality (1-100) to FFmpeg's CRF (Constant Rate Factor) range (0-51)
       const crf = Math.round(51 - (quality / 100) * 50) // Lower CRF means higher quality
 
-      const outputPath = path.join(
-        path.dirname(videoPath),
-        `compressed-${path.basename(videoPath)}`
-      )
+      const outputPath = path.join(os.tmpdir(), `compressed-${path.basename(videoPath)}`)
 
+      console.log('🚀 ~ returnnewPromise ~ outputPath:', outputPath)
       // Ensure the output file does not exist before processing
       if (fs.existsSync(outputPath)) {
         fs.unlinkSync(outputPath)

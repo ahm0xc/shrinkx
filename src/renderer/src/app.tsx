@@ -6,6 +6,7 @@ import { Slider } from '@renderer/components/ui/slider'
 import { Switch } from '@renderer/components/ui/switch'
 import { Button } from '@renderer/components/ui/button'
 import { cn, formatBytes, getCleanFileName, getFileExtension, truncate } from '@renderer/lib/utils'
+import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../shared/config'
 
 type CustomFile = {
   id: string
@@ -14,7 +15,7 @@ type CustomFile = {
   size: number
   isCompressed: boolean
   progress: number
-  filetype: 'image' | 'video'
+  filetype: 'image' | 'video' | 'unknown'
   preview?: string
 }
 
@@ -97,19 +98,63 @@ export default function App() {
   }, [])
 
   const handleCompress = React.useCallback(async () => {
-    console.log('compress')
     setIsCompressing(true)
     for (const file of files) {
-      await new Promise((resolve, reject) => {
-        window.electron.ipcRenderer.invoke('compress-image', { id: file.id, imagePath: file.path })
-        window.electron.ipcRenderer.on(`compress-complete-${file.id}`, (_, { outputPath }) => {
-          resolve(outputPath)
-        })
-        window.electron.ipcRenderer.on(`compress-error-${file.id}`, (_, { error }) => {
+      await new Promise(async (resolve, reject) => {
+        try {
+          if (file.filetype === 'image') {
+            window.electron.ipcRenderer.send('compress-image', {
+              id: file.id,
+              imagePath: file.path
+            })
+            window.electron.ipcRenderer.on(
+              `compress-image-complete-${file.id}`,
+              (_, { outputPath }) => {
+                resolve(outputPath)
+              }
+            )
+            window.electron.ipcRenderer.on(`compress-image-error-${file.id}`, (_, { error }) => {
+              reject(error)
+            })
+            window.electron.ipcRenderer.on(
+              `compress-image-progress-${file.id}`,
+              (_, { progress }) => {
+                setFiles((prevFiles) =>
+                  prevFiles.map((f) => (f.id === file.id ? { ...f, progress } : f))
+                )
+              }
+            )
+            resolve(true)
+          } else if (file.filetype === 'video') {
+            window.electron.ipcRenderer.send('compress-video', {
+              id: file.id,
+              path: file.path
+            })
+            window.electron.ipcRenderer.on(
+              `compress-video-complete-${file.id}`,
+              (_, { outputPath }) => {
+                resolve(outputPath)
+              }
+            )
+            window.electron.ipcRenderer.on(`compress-video-error-${file.id}`, (_, { error }) => {
+              reject(error)
+            })
+            window.electron.ipcRenderer.on(
+              `compress-video-progress-${file.id}`,
+              (_, { progress }) => {
+                setFiles((prevFiles) =>
+                  prevFiles.map((f) => (f.id === file.id ? { ...f, progress } : f))
+                )
+              }
+            )
+            resolve(true)
+          }
+        } catch (error) {
           reject(error)
-        })
+        }
       })
     }
+    setIsCompressing(false)
   }, [files])
 
   async function openFileDialog() {
@@ -121,6 +166,10 @@ export default function App() {
 
     setFiles(
       fileStats.map((stat, index) => {
+        const extension = getFileExtension(stat.name)
+        const isImage = IMAGE_EXTENSIONS.includes(extension ?? '')
+        const isVideo = VIDEO_EXTENSIONS.includes(extension ?? '')
+
         return {
           id: nanoid(),
           name: stat.name,
@@ -128,7 +177,7 @@ export default function App() {
           size: stat.size,
           isCompressed: false,
           progress: 0,
-          filetype: stat.isFile ? 'image' : 'video',
+          filetype: isImage ? 'image' : isVideo ? 'video' : 'unknown',
           preview: filePreviews[index] ?? undefined
         }
       })
@@ -210,7 +259,15 @@ export default function App() {
                         </p>
                         <p className="text-xs text-foreground/50">{formatBytes(file.size)}</p>
                         <div className="bg-primary/5 h-1 rounded-full mt-0.5">
-                          <div className="h-full w-[40%] bg-primary rounded-[inherit]" />
+                          <div
+                            className={cn(
+                              'h-full bg-primary rounded-[inherit]',
+                              file.progress === 0 && 'opacity-0',
+                              file.progress > 0 && 'opacity-100',
+                              file.progress === 100 && 'bg-green-500'
+                            )}
+                            style={{ width: `${file.progress}%` }}
+                          />
                         </div>
                       </div>
                     </div>
