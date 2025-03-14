@@ -117,17 +117,23 @@ export default function App() {
   async function openFileDialog() {
     const filePaths = await window.api.openFileDialog()
     const fileStats = await window.api.getFilesStats(filePaths)
+    const filePreviews = await Promise.all(
+      fileStats.map((stat) => window.api.getFilePreview(stat.path))
+    )
 
     setFiles(
-      fileStats.map((stat) => ({
-        id: nanoid(),
-        name: stat.name,
-        path: stat.path,
-        size: stat.size,
-        isCompressed: false,
-        progress: 0,
-        filetype: stat.isFile ? 'image' : 'video'
-      }))
+      fileStats.map((stat, index) => {
+        return {
+          id: nanoid(),
+          name: stat.name,
+          path: stat.path,
+          size: stat.size,
+          isCompressed: false,
+          progress: 0,
+          filetype: stat.isFile ? 'image' : 'video',
+          preview: filePreviews[index] ?? undefined
+        }
+      })
     )
   }
 

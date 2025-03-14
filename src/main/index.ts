@@ -1,9 +1,9 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { basename, join } from 'path'
+import { basename, join, extname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { statSync } from 'fs'
 
-import { compressImage } from './utils'
+import { compressImage, getImagePreview, getVideoPreview } from './utils'
 
 import icon from '../../resources/icon.png?asset'
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../shared/config'
@@ -91,6 +91,22 @@ app.whenReady().then(() => {
       })
     )
     return stats
+  })
+
+  ipcMain.handle('get-file-preview', async (_event, { filePath }) => {
+    const fileExtension = extname(filePath).split('.')[1]
+    const isVideo = VIDEO_EXTENSIONS.includes(fileExtension)
+    const isImage = IMAGE_EXTENSIONS.includes(fileExtension)
+
+    if (isVideo) {
+      return await getVideoPreview(filePath)
+    }
+
+    if (isImage) {
+      return await getImagePreview(filePath)
+    }
+
+    return null
   })
 
   ipcMain.handle('compress-image', async (event, { id, imagePath }) => {
