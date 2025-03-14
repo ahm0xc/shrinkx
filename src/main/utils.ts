@@ -156,8 +156,6 @@ export async function getImagePreview(imagePath: string): Promise<string | null>
 export async function getVideoPreview(videoPath: string): Promise<string | null> {
   const previewPath = path.join(os.tmpdir(), `preview-${crypto.randomUUID()}.jpg`)
 
-  console.log('🚀 ~ getVideoPreview ~ previewPath:', previewPath)
-
   try {
     // Extract a frame at 1 second or 10% of the video duration, whichever is less
     await execa(ffmpegPath, [

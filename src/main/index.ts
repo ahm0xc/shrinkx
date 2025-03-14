@@ -6,7 +6,7 @@ import { statSync } from 'fs'
 import { compressImage, getImagePreview, getVideoPreview } from './utils'
 
 import icon from '../../resources/icon.png?asset'
-import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../shared/config'
+import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, ALL_EXTENSIONS } from '../shared/config'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -62,15 +62,13 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
   ipcMain.handle('open-file-dialog', async () => {
     const result = await dialog.showOpenDialog(mainWindow!, {
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Images', extensions: IMAGE_EXTENSIONS },
-        { name: 'Videos', extensions: VIDEO_EXTENSIONS }
+        // { name: 'Images', extensions: IMAGE_EXTENSIONS },
+        // { name: 'Videos', extensions: VIDEO_EXTENSIONS },
+        { name: 'All Supported Files', extensions: ALL_EXTENSIONS }
       ]
     })
 

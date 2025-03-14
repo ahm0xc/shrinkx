@@ -14,7 +14,7 @@ type CustomFile = {
   size: number
   isCompressed: boolean
   progress: number
-  filetype: 'image' | 'video' | 'archive'
+  filetype: 'image' | 'video'
   preview?: string
 }
 
@@ -22,8 +22,6 @@ export default function App() {
   const [activeTabIndex, setActiveTabIndex] = React.useState(0)
   const [files, setFiles] = React.useState<CustomFile[]>([])
   const [isCompressing, setIsCompressing] = React.useState(false)
-
-  const dropzoneRef = React.useRef<HTMLDivElement>(null)
 
   const settingsTabs = React.useMemo(
     () =>
@@ -137,49 +135,9 @@ export default function App() {
     )
   }
 
-  // const handleDragOver = (e: React.DragEvent<Element>) => {
-  //   e.preventDefault()
-  //   e.stopPropagation()
-
-  //   if (!isDragActive) setIsDragActive(true)
-  // }
-  // const handleDragLeave = (e: React.DragEvent<Element>) => {
-  //   e.preventDefault()
-  //   e.stopPropagation()
-
-  //   if (isDragActive) setIsDragActive(false)
-  // }
-
-  // const handleDrop = (e: React.DragEvent<Element>) => {
-  //   e.preventDefault()
-  //   e.stopPropagation()
-
-  //   if (isDragActive) setIsDragActive(false)
-
-  //   const files = e.dataTransfer.files
-
-  //   for (const file of files) {
-  //     console.log('file', file.path)
-  //   }
-
-  //   const acceptedFiles = Array.from(files).filter((file) => {
-  //     const extension = getFileExtension(file.name)
-  //     if (!extension) return false
-  //     return ALL_EXTENSIONS.includes(extension)
-  //   })
-  //   console.log('acceptedFiles', acceptedFiles)
-  // }
-
   return (
     <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
-      <section
-        className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4"
-        ref={dropzoneRef}
-        // onDragOver={handleDragOver}
-        // onDragLeave={handleDragLeave}
-        // onDrop={handleDrop}
-        onClick={openFileDialog}
-      >
+      <section className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4">
         <div className="w-full flex-1 bg-foreground/5 rounded-[40px]">
           <div
             className={cn(
@@ -199,7 +157,10 @@ export default function App() {
               />
             </div>
             <p className="text-sm text-foreground/50 mt-4">Drop files here or click to upload</p>
-            <Button className="w-fit mt-4">Select files</Button>
+
+            <Button onClick={openFileDialog} className="w-fit mt-4">
+              Select files
+            </Button>
           </div>
         </div>
         {files.length !== 0 && (
