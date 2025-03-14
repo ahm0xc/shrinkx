@@ -178,24 +178,24 @@ export default function App() {
       fileStats.map((stat) => window.api.getFilePreview(stat.path))
     )
 
-    setFiles(
-      fileStats.map((stat, index) => {
-        const extension = getFileExtension(stat.name)
-        const isImage = IMAGE_EXTENSIONS.includes(extension ?? '')
-        const isVideo = VIDEO_EXTENSIONS.includes(extension ?? '')
+    const newFiles: CustomFile[] = fileStats.map((stat, index) => {
+      const extension = getFileExtension(stat.name)
+      const isImage = IMAGE_EXTENSIONS.includes(extension ?? '')
+      const isVideo = VIDEO_EXTENSIONS.includes(extension ?? '')
 
-        return {
-          id: nanoid(),
-          name: stat.name,
-          path: stat.path,
-          size: stat.size,
-          isCompressed: false,
-          progress: 0,
-          filetype: isImage ? 'image' : isVideo ? 'video' : 'unknown',
-          preview: filePreviews[index] ?? undefined
-        }
-      })
-    )
+      return {
+        id: nanoid(),
+        name: stat.name,
+        path: stat.path,
+        size: stat.size,
+        isCompressed: false,
+        progress: 0,
+        filetype: isImage ? 'image' : isVideo ? 'video' : 'unknown',
+        preview: filePreviews[index] ?? undefined
+      }
+    })
+
+    setFiles((prevFiles) => [...newFiles, ...prevFiles])
   }
 
   const openFolder = React.useCallback((file: CustomFile) => {
