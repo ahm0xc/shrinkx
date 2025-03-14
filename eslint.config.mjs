@@ -27,7 +27,8 @@ export default tseslint.config(
       ...eslintPluginReactRefresh.configs.vite.rules,
       '@typescript-eslint/explicit-function-return-type': 'off',
       'react-refresh/only-export-components': 'off',
-      'no-async-promise-executor': 'off'
+      'no-async-promise-executor': 'off',
+      'react-hooks/exhaustive-deps': 'off'
     }
   },
   eslintConfigPrettier

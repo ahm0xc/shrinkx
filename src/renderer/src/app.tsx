@@ -1,20 +1,21 @@
 import React from 'react'
 import { FileImage, FileVideo, FileZip, Image, Play, Trash, Video } from '@phosphor-icons/react'
-import { useDropzone } from 'react-dropzone'
-import { nanoid } from 'nanoid'
-import fs from 'fs'
-import path from 'path'
 
 import { Slider } from '@renderer/components/ui/slider'
 import { Switch } from '@renderer/components/ui/switch'
 import { Button } from '@renderer/components/ui/button'
 import { cn, formatBytes, getCleanFileName, getFileExtension, truncate } from '@renderer/lib/utils'
+import { nanoid } from 'nanoid'
 
-const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.avif']
-const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm']
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif']
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm']
+const ALL_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS]
 
-type CustomFile = File & {
+type CustomFile = {
   id: string
+  name: string
+  path: string
+  size: number
   isCompressed: boolean
   progress: number
   filetype: 'image' | 'video' | 'archive'
@@ -26,43 +27,7 @@ export default function App() {
   const [files, setFiles] = React.useState<CustomFile[]>([])
   const [isCompressing, setIsCompressing] = React.useState(false)
 
-  const onDrop = React.useCallback((acceptedFiles: File[]) => {
-    const mappedFiles = acceptedFiles.map((file) => ({
-      ...file,
-      fullPath: fs.realpathSync(path.resolve(file.path)) // Get absolute path
-    }))
-    console.log('mappedFiles', mappedFiles)
-
-    for (const file of acceptedFiles) {
-      const isImage = file.type.startsWith('image/')
-      const isVideo = file.type.startsWith('video/')
-
-      setFiles((prevFiles) => [
-        {
-          ...file,
-          id: nanoid(),
-          name: file.name,
-          size: file.size,
-          path: file.path,
-          isCompressed: false,
-          type: file.type,
-          filetype: isImage ? 'image' : isVideo ? 'video' : 'archive',
-          progress: 0,
-          preview: isImage || isVideo ? URL.createObjectURL(file) : undefined
-        },
-        ...prevFiles
-      ])
-    }
-  }, [])
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': IMAGE_EXTENSIONS,
-      'video/*': VIDEO_EXTENSIONS
-    },
-    multiple: true
-  })
+  const dropzoneRef = React.useRef<HTMLDivElement>(null)
 
   const settingsTabs = React.useMemo(
     () =>
@@ -153,19 +118,73 @@ export default function App() {
     }
   }, [files])
 
+  async function openFileDialog() {
+    const filePaths = await window.api.openFileDialog()
+    const fileStats = await window.api.getFilesStats(filePaths)
+
+    setFiles(
+      fileStats.map((stat) => ({
+        id: nanoid(),
+        name: stat.name,
+        path: stat.path,
+        size: stat.size,
+        isCompressed: false,
+        progress: 0,
+        filetype: stat.isFile ? 'image' : 'video'
+      }))
+    )
+  }
+
+  // const handleDragOver = (e: React.DragEvent<Element>) => {
+  //   e.preventDefault()
+  //   e.stopPropagation()
+
+  //   if (!isDragActive) setIsDragActive(true)
+  // }
+  // const handleDragLeave = (e: React.DragEvent<Element>) => {
+  //   e.preventDefault()
+  //   e.stopPropagation()
+
+  //   if (isDragActive) setIsDragActive(false)
+  // }
+
+  // const handleDrop = (e: React.DragEvent<Element>) => {
+  //   e.preventDefault()
+  //   e.stopPropagation()
+
+  //   if (isDragActive) setIsDragActive(false)
+
+  //   const files = e.dataTransfer.files
+
+  //   for (const file of files) {
+  //     console.log('file', file.path)
+  //   }
+
+  //   const acceptedFiles = Array.from(files).filter((file) => {
+  //     const extension = getFileExtension(file.name)
+  //     if (!extension) return false
+  //     return ALL_EXTENSIONS.includes(extension)
+  //   })
+  //   console.log('acceptedFiles', acceptedFiles)
+  // }
+
   return (
     <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
-      <section className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4">
+      <section
+        className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4"
+        ref={dropzoneRef}
+        // onDragOver={handleDragOver}
+        // onDragLeave={handleDragLeave}
+        // onDrop={handleDrop}
+        onClick={openFileDialog}
+      >
         <div className="w-full flex-1 bg-foreground/5 rounded-[40px]">
           <div
-            {...getRootProps()}
             className={cn(
-              'w-full h-full flex items-center border-4 border-dashed border-transparent justify-center flex-col rounded-[inherit]',
-              isDragActive && 'border-green-500/50 bg-green-500/10'
+              'w-full h-full flex items-center border-4 border-dashed border-transparent justify-center flex-col rounded-[inherit]'
+              // isDragActive && 'border-green-500/50 bg-green-500/10'
             )}
           >
-            <input {...getInputProps()} className="hidden" />
-
             <div className="flex gap-0 text-foreground/50">
               <FileImage
                 className="-rotate-12 w-[10vw] h-[10vw] translate-x-1/4"
@@ -178,6 +197,7 @@ export default function App() {
               />
             </div>
             <p className="text-sm text-foreground/50 mt-4">Drop files here or click to upload</p>
+            <Button className="w-fit mt-4">Select files</Button>
           </div>
         </div>
         {files.length !== 0 && (
@@ -198,7 +218,11 @@ export default function App() {
                         <Trash className="size-3" weight="duotone" />
                       </button>
                       {file.preview && file.filetype === 'image' && (
-                        <img src={file.preview} alt={file.name} className="w-10 h-10 rounded-md" />
+                        <img
+                          src={file.preview}
+                          alt={file.name}
+                          className="w-10 h-10 rounded-md bg-primary/5"
+                        />
                       )}
                       {file.preview && file.filetype === 'video' && (
                         <div className="relative">

@@ -1,14 +1,17 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { join } from 'path'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { basename, join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { statSync } from 'fs'
 
 import { compressImage } from './utils'
 
 import icon from '../../resources/icon.png?asset'
 
+let mainWindow: BrowserWindow | null = null
+
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 600,
@@ -20,12 +23,14 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: false,
+      nodeIntegration: true
     }
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -58,6 +63,35 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  ipcMain.handle('open-file-dialog', async () => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'avif'] },
+        { name: 'Videos', extensions: ['mp4', 'mov', 'avi', 'mkv', 'webm'] }
+        // { name: 'Archives', extensions: ['zip', 'rar', 'tar', 'gz', 'bz2', '7z'] }
+      ]
+    })
+
+    return result.filePaths
+  })
+
+  ipcMain.handle('get-files-stats', async (_event, { filePaths }) => {
+    const stats = await Promise.all(
+      filePaths.map((filePath) => {
+        const stats = statSync(filePath)
+        return {
+          name: basename(filePath),
+          path: filePath,
+          size: stats.size,
+          isFile: stats.isFile(),
+          isDirectory: stats.isDirectory()
+        }
+      })
+    )
+    return stats
+  })
 
   ipcMain.handle('compress-image', async (event, { id, imagePath }) => {
     console.log('compress-image', { id, imagePath })
