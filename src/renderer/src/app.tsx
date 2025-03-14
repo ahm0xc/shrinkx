@@ -101,7 +101,13 @@ export default function App() {
 
   const handleCompress = React.useCallback(async () => {
     setIsCompressing(true)
-    for (const file of files) {
+    const sortedFiles = files.sort((a, b) => {
+      if (a.filetype === 'image' && b.filetype !== 'image') return -1
+      if (a.filetype !== 'image' && b.filetype === 'image') return 1
+      return 0
+    })
+
+    for (const file of sortedFiles) {
       await new Promise(async (resolve, reject) => {
         try {
           if (file.filetype === 'image') {
