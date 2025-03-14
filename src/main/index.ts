@@ -6,6 +6,7 @@ import { statSync } from 'fs'
 import { compressImage } from './utils'
 
 import icon from '../../resources/icon.png?asset'
+import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../shared/config'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -68,9 +69,8 @@ app.whenReady().then(() => {
     const result = await dialog.showOpenDialog(mainWindow!, {
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'avif'] },
-        { name: 'Videos', extensions: ['mp4', 'mov', 'avi', 'mkv', 'webm'] }
-        // { name: 'Archives', extensions: ['zip', 'rar', 'tar', 'gz', 'bz2', '7z'] }
+        { name: 'Images', extensions: IMAGE_EXTENSIONS },
+        { name: 'Videos', extensions: VIDEO_EXTENSIONS }
       ]
     })
 

@@ -1,15 +1,11 @@
 import React from 'react'
 import { FileImage, FileVideo, FileZip, Image, Play, Trash, Video } from '@phosphor-icons/react'
+import { nanoid } from 'nanoid'
 
 import { Slider } from '@renderer/components/ui/slider'
 import { Switch } from '@renderer/components/ui/switch'
 import { Button } from '@renderer/components/ui/button'
 import { cn, formatBytes, getCleanFileName, getFileExtension, truncate } from '@renderer/lib/utils'
-import { nanoid } from 'nanoid'
-
-const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif']
-const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm']
-const ALL_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS]
 
 type CustomFile = {
   id: string
