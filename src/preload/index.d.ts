@@ -15,6 +15,7 @@ declare global {
       openFileDialog: () => Promise<string[]>
       getFilesStats: (filePaths: string[]) => Promise<FileStats[]>
       getFilePreview: (filePath: string) => Promise<string | null>
+      showItemInFolder: (path: string) => Promise<void>
     }
   }
 }

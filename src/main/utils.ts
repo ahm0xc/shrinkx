@@ -17,32 +17,24 @@ export async function compressImage(
   imagePath: string,
   {
     quality = 80,
+    onProgress,
     onComplete
   }: {
     quality?: number
+    onProgress: (progress: number) => void
     onComplete: (compressedImagePath: string) => void
   }
 ) {
   return new Promise(async (resolve, reject) => {
     try {
-      // Map quality from 1-100 to pngquant's range (0-100)
-      const minQuality = Math.max(0, Math.min(quality - 10, 100)) // Ensure a valid range
-      const maxQuality = Math.max(minQuality + 10, Math.min(quality, 100))
+      const outputDir = path.dirname(imagePath)
+      const outputFileName = `compressed-${path.basename(imagePath)}`
+      const outputPath = path.join(outputDir, outputFileName)
 
-      const outputPath = path.join(os.tmpdir(), `compressed-${path.basename(imagePath)}`)
-
-      const process = execa('pngquant', [
-        `--quality=${minQuality}-${maxQuality}`,
-        '--speed=1', // Slowest but best compression
-        '--force', // Overwrite existing file if needed
-        '-o',
-        outputPath,
-        imagePath
-      ])
-
-      await process
+      await sharp(imagePath).jpeg({ quality }).toFile(outputPath)
 
       console.log('complete')
+      onProgress(100)
       onComplete(outputPath)
       resolve(outputPath)
     } catch (error) {
@@ -68,9 +60,10 @@ export async function compressVideo(
       // Map quality (1-100) to FFmpeg's CRF (Constant Rate Factor) range (0-51)
       const crf = Math.round(51 - (quality / 100) * 50) // Lower CRF means higher quality
 
-      const outputPath = path.join(os.tmpdir(), `compressed-${path.basename(videoPath)}`)
+      const outputDir = path.dirname(videoPath)
+      const outputFileName = `compressed-${path.basename(videoPath)}`
+      const outputPath = path.join(outputDir, outputFileName)
 
-      console.log('🚀 ~ returnnewPromise ~ outputPath:', outputPath)
       // Ensure the output file does not exist before processing
       if (fs.existsSync(outputPath)) {
         fs.unlinkSync(outputPath)

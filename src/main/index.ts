@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { basename, join, extname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { statSync } from 'fs'
+import * as fs from 'fs'
 
 import { compressImage, compressVideo, getImagePreview, getVideoPreview } from './utils'
 
@@ -78,7 +78,7 @@ app.whenReady().then(() => {
   ipcMain.handle('get-files-stats', async (_event, { filePaths }) => {
     const stats = await Promise.all(
       filePaths.map((filePath) => {
-        const stats = statSync(filePath)
+        const stats = fs.statSync(filePath)
         return {
           name: basename(filePath),
           path: filePath,
@@ -111,6 +111,9 @@ app.whenReady().then(() => {
     console.log('compress-image', { id, path })
     try {
       await compressImage(path, {
+        onProgress: (progress) => {
+          event.sender.send(`compress-image-progress-${id}`, { progress })
+        },
         onComplete: (outputPath) => {
           event.sender.send(`compress-image-complete-${id}`, { outputPath })
         }
@@ -134,6 +137,10 @@ app.whenReady().then(() => {
     } catch (error) {
       event.sender.send(`compress-video-error-${id}`, { error })
     }
+  })
+
+  ipcMain.handle('show-item-in-folder', async (_event, { path }) => {
+    shell.showItemInFolder(path)
   })
 
   createWindow()

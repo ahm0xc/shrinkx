@@ -1,6 +1,7 @@
 import React from 'react'
-import { FileImage, FileVideo, FileZip, Image, Play, Trash, Video } from '@phosphor-icons/react'
+import { FileImage, FileVideo, FileZip, Image, Trash, Video } from '@phosphor-icons/react'
 import { nanoid } from 'nanoid'
+import { FolderIcon } from 'lucide-react'
 
 import { Slider } from '@renderer/components/ui/slider'
 import { Switch } from '@renderer/components/ui/switch'
@@ -16,6 +17,7 @@ type CustomFile = {
   isCompressed: boolean
   progress: number
   filetype: 'image' | 'video' | 'unknown'
+  outputPath?: string
   preview?: string
 }
 
@@ -105,12 +107,15 @@ export default function App() {
           if (file.filetype === 'image') {
             window.electron.ipcRenderer.send('compress-image', {
               id: file.id,
-              imagePath: file.path
+              path: file.path
             })
             window.electron.ipcRenderer.on(
               `compress-image-complete-${file.id}`,
               (_, { outputPath }) => {
                 resolve(outputPath)
+                setFiles((prevFiles) =>
+                  prevFiles.map((f) => (f.id === file.id ? { ...f, outputPath, progress: 100 } : f))
+                )
               }
             )
             window.electron.ipcRenderer.on(`compress-image-error-${file.id}`, (_, { error }) => {
@@ -134,6 +139,9 @@ export default function App() {
               `compress-video-complete-${file.id}`,
               (_, { outputPath }) => {
                 resolve(outputPath)
+                setFiles((prevFiles) =>
+                  prevFiles.map((f) => (f.id === file.id ? { ...f, outputPath, progress: 100 } : f))
+                )
               }
             )
             window.electron.ipcRenderer.on(`compress-video-error-${file.id}`, (_, { error }) => {
@@ -184,6 +192,12 @@ export default function App() {
     )
   }
 
+  const openFolder = React.useCallback((file: CustomFile) => {
+    if (!file.outputPath) return
+    console.log('opening...', file.outputPath)
+    window.api.showItemInFolder(file.outputPath)
+  }, [])
+
   return (
     <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
       <section className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4">
@@ -229,29 +243,25 @@ export default function App() {
                       >
                         <Trash className="size-3" weight="duotone" />
                       </button>
-                      {file.preview && file.filetype === 'image' && (
-                        <img
-                          src={file.preview}
-                          alt={file.name}
-                          className="w-10 h-10 rounded-md bg-primary/5"
-                        />
-                      )}
-                      {file.preview && file.filetype === 'video' && (
-                        <div className="relative">
-                          <span className="absolute top-1/2 left-1/2 pointer-events-none -translate-x-1/2 -translate-y-1/2">
-                            <Play className="size-3" weight="duotone" />
-                          </span>
-                          <video
+                      <div className="relative">
+                        {file.preview && (
+                          <img
                             src={file.preview}
-                            onMouseOver={(e) => e.currentTarget.play()}
-                            onMouseOut={(e) => e.currentTarget.pause()}
-                            autoPlay={true}
-                            muted={true}
-                            playsInline={true}
+                            alt={file.name}
                             className="w-10 h-10 rounded-md bg-primary/5"
                           />
-                        </div>
-                      )}
+                        )}
+                        {file.outputPath && (
+                          <button
+                            type="button"
+                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md p-3"
+                            onClick={() => openFolder(file)}
+                            title="Open folder"
+                          >
+                            <FolderIcon className="size-4" />
+                          </button>
+                        )}
+                      </div>
                       <div>
                         <p className="text-sm">
                           {truncate(getCleanFileName(file.name), 15)}
