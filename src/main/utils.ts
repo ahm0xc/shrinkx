@@ -82,92 +82,136 @@ export async function compressVideo(
 
       const totalDurationInSeconds = parseFloat(durationProcess.stdout) || 0
 
+      // Get CPU core count for optimal thread usage
+      const cpuCores = os.cpus().length
+      const optimalThreadCount = Math.max(2, cpuCores - 1) // Leave one core free for system
+
       // Try hardware acceleration first, then fall back to software if it fails
       const platform = os.platform()
       let ffmpegArgs: string[]
 
-      // For macOS, try to use VideoToolbox
+      // For macOS, use VideoToolbox for GPU encoding with CPU assistance
       if (platform === 'darwin') {
         // Use a bitrate-based approach which is more compatible with hardware encoding
         // Convert quality (1-100) to a bitrate range (500k-8000k)
         const bitrate = Math.round(500 + (quality / 100) * 7500)
 
         ffmpegArgs = [
+          // Allow FFmpeg to use CPU for pre/post processing
+          '-threads',
+          optimalThreadCount.toString(),
           '-i',
           videoPath,
+          // Use GPU for actual encoding
           '-c:v',
-          'h264_videotoolbox', // macOS hardware encoder
+          'h264_videotoolbox',
+          // Parallel video frame processing with lookahead
           '-b:v',
-          `${bitrate}k`, // Use bitrate instead of CRF/quality
+          `${bitrate}k`,
           '-maxrate',
           `${bitrate * 1.5}k`,
           '-bufsize',
           `${bitrate * 3}k`,
-          '-preset',
-          'medium', // Balance between speed and quality
+          // Use CPU for audio processing if audio exists
+          '-c:a',
+          'aac',
+          '-b:a',
+          '192k',
+          // Define shared thread pool for CPU tasks
+          '-filter_threads',
+          Math.floor(optimalThreadCount / 2).toString(),
+          '-filter_complex_threads',
+          Math.floor(optimalThreadCount / 2).toString(),
+          // Ensure compatibility
           '-pix_fmt',
-          'yuv420p', // Ensure compatibility
-          '-threads',
-          '0', // Use optimal thread count
+          'yuv420p',
           outputPath
         ]
       }
-      // For Windows, try NVENC
+      // For Windows, use NVENC with CPU assist
       else if (platform === 'win32') {
         ffmpegArgs = [
-          '-i',
-          videoPath,
-          '-c:v',
-          'h264_nvenc', // NVIDIA hardware encoder
-          '-preset',
-          'p4', // Good balance preset
-          '-rc',
-          'vbr', // Variable bitrate
-          '-cq',
-          crf.toString(), // Quality level
           '-threads',
-          '0',
-          outputPath
-        ]
-      }
-      // For Linux, try NVENC or VAAPI
-      else if (platform === 'linux') {
-        ffmpegArgs = [
+          optimalThreadCount.toString(),
           '-i',
           videoPath,
+          // GPU encoding
           '-c:v',
-          'h264_nvenc', // Try NVIDIA first
+          'h264_nvenc',
+          // Set lookahead to utilize CPU for analysis
+          '-rc-lookahead',
+          '32',
           '-preset',
           'p4',
           '-rc',
           'vbr',
           '-cq',
           crf.toString(),
-          '-threads',
-          '0',
+          // CPU for audio
+          '-c:a',
+          'aac',
+          '-b:a',
+          '192k',
+          // CPU resources for filtering
+          '-filter_threads',
+          Math.floor(optimalThreadCount / 2).toString(),
           outputPath
         ]
       }
-      // Default software encoding fallback
+      // For Linux, use NVENC with CPU assist
+      else if (platform === 'linux') {
+        ffmpegArgs = [
+          '-threads',
+          optimalThreadCount.toString(),
+          '-i',
+          videoPath,
+          // GPU encoding
+          '-c:v',
+          'h264_nvenc',
+          // Set lookahead to utilize CPU for analysis
+          '-rc-lookahead',
+          '32',
+          '-preset',
+          'p4',
+          '-rc',
+          'vbr',
+          '-cq',
+          crf.toString(),
+          // CPU for audio
+          '-c:a',
+          'aac',
+          '-b:a',
+          '192k',
+          // CPU resources for filtering
+          '-filter_threads',
+          Math.floor(optimalThreadCount / 2).toString(),
+          outputPath
+        ]
+      }
+      // Default software encoding
       else {
         ffmpegArgs = [
           '-i',
           videoPath,
           '-c:v',
-          'libx264', // Software x264 encoder
+          'libx264',
           '-crf',
-          crf.toString(), // Quality control
+          crf.toString(),
           '-preset',
-          'medium', // Balance between speed and quality
+          'medium',
+          '-c:a',
+          'aac',
+          '-b:a',
+          '192k',
           '-threads',
-          '0',
+          optimalThreadCount.toString(),
           outputPath
         ]
       }
 
       console.log('Using FFmpeg command:', ffmpegPath, ffmpegArgs.join(' '))
 
-      // Try with hardware acceleration first
+      // Try with hybrid CPU/GPU acceleration first
       try {
         const process = execa(ffmpegPath, ffmpegArgs)
 
@@ -190,7 +234,7 @@ export async function compressVideo(
         onComplete(outputPath)
         resolve(outputPath)
       } catch (hwError: unknown) {
-        // If hardware acceleration fails, fall back to software encoding
+        // If hardware acceleration fails, fall back to optimized software encoding
         console.warn(
           'Hardware acceleration failed, falling back to software encoding:',
           hwError instanceof Error ? hwError.message : String(hwError)
@@ -199,23 +243,36 @@ export async function compressVideo(
         // Only proceed with fallback if the output file wasn't created or is empty
         const outputExists = fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0
         if (!outputExists) {
+          // Use optimized CPU-only encoding with all available threads
           const softwareArgs = [
             '-i',
             videoPath,
             '-c:v',
-            'libx264', // Software encoder
+            'libx264',
             '-crf',
-            crf.toString(), // Quality control
+            crf.toString(),
             '-preset',
-            'medium', // Balance between speed and quality
-            '-pix_fmt',
-            'yuv420p', // Ensure compatibility
+            'medium',
+            '-c:a',
+            'aac',
+            '-b:a',
+            '192k',
+            // Use all CPU cores for encoding
             '-threads',
-            '0',
+            cpuCores.toString(),
+            // Additional CPU optimization flags
+            '-tune',
+            'film',
+            '-pix_fmt',
+            'yuv420p',
             outputPath
           ]
 
-          console.log('Falling back to software encoding:', ffmpegPath, softwareArgs.join(' '))
+          console.log(
+            'Falling back to optimized software encoding:',
+            ffmpegPath,
+            softwareArgs.join(' ')
+          )
 
           const fallbackProcess = execa(ffmpegPath, softwareArgs)
 
