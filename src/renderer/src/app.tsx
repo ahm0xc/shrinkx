@@ -108,103 +108,120 @@ export default function App() {
     setFiles((prevFiles) => prevFiles.filter((f) => f.id !== file.id))
   }, [])
 
-  const handleCompress = React.useCallback(async () => {
-    setIsCompressing(true)
-    const sortedFiles = files.sort((a, b) => {
-      if (a.filetype === 'image' && b.filetype !== 'image') return -1
-      if (a.filetype !== 'image' && b.filetype === 'image') return 1
-      return 0
-    })
+  const updateFileProgress = React.useCallback((fileId: string, progress: number) => {
+    setFiles((prevFiles) => prevFiles.map((f) => (f.id === fileId ? { ...f, progress } : f)))
+  }, [])
 
-    const filesToCompress = sortedFiles.filter((file) => !file.isCompressed)
+  const updateFileCompressionComplete = React.useCallback(
+    async (fileId: string, outputPath: string) => {
+      try {
+        const stats = await window.api.getFilesStats([outputPath])
+        setFiles((prevFiles) =>
+          prevFiles.map((f) =>
+            f.id === fileId
+              ? {
+                  ...f,
+                  outputPath,
+                  progress: 100,
+                  isCompressed: true,
+                  compressionStats: {
+                    size: stats[0].size
+                  }
+                }
+              : f
+          )
+        )
+      } catch (error) {
+        console.error('Error getting file stats:', error)
+      }
+    },
+    []
+  )
 
-    for (const file of filesToCompress) {
-      await new Promise(async (resolve, reject) => {
+  const compressFile = React.useCallback(
+    async (file: CustomFile): Promise<void> => {
+      return new Promise(async (resolve, reject) => {
         try {
-          if (file.filetype === 'image') {
-            window.electron.ipcRenderer.send('compress-image', {
-              id: file.id,
-              path: file.path
-            })
-            window.electron.ipcRenderer.on(
-              `compress-image-complete-${file.id}`,
-              async (_, { outputPath }) => {
-                resolve(outputPath)
-                const stats = await window.api.getFilesStats([outputPath])
-                setFiles((prevFiles) =>
-                  prevFiles.map((f) =>
-                    f.id === file.id
-                      ? {
-                          ...f,
-                          outputPath,
-                          progress: 100,
-                          isCompressed: true,
-                          compressionStats: {
-                            size: stats[0].size
-                          }
-                        }
-                      : f
-                  )
-                )
-              }
-            )
-            window.electron.ipcRenderer.on(`compress-image-error-${file.id}`, (_, { error }) => {
-              reject(error)
-            })
-            window.electron.ipcRenderer.on(
-              `compress-image-progress-${file.id}`,
-              (_, { progress }) => {
-                setFiles((prevFiles) =>
-                  prevFiles.map((f) => (f.id === file.id ? { ...f, progress } : f))
-                )
-              }
-            )
-            resolve(true)
-          } else if (file.filetype === 'video') {
-            window.electron.ipcRenderer.send('compress-video', {
-              id: file.id,
-              path: file.path
-            })
-            window.electron.ipcRenderer.on(
-              `compress-video-complete-${file.id}`,
-              async (_, { outputPath }) => {
-                resolve(outputPath)
-                const stats = await window.api.getFilesStats([outputPath])
-                setFiles((prevFiles) =>
-                  prevFiles.map((f) =>
-                    f.id === file.id
-                      ? {
-                          ...f,
-                          outputPath,
-                          progress: 100,
-                          isCompressed: true,
-                          compressionStats: { size: stats[0].size }
-                        }
-                      : f
-                  )
-                )
-              }
-            )
-            window.electron.ipcRenderer.on(`compress-video-error-${file.id}`, (_, { error }) => {
-              reject(error)
-            })
-            window.electron.ipcRenderer.on(
-              `compress-video-progress-${file.id}`,
-              (_, { progress }) => {
-                setFiles((prevFiles) =>
-                  prevFiles.map((f) => (f.id === file.id ? { ...f, progress } : f))
-                )
-              }
-            )
-            resolve(true)
+          if (!file.path) {
+            reject(new Error(`No path found for file: ${file.name}`))
+            return
           }
+
+          const compressionType = file.filetype === 'image' ? 'image' : 'video'
+          const eventBase = `compress-${compressionType}`
+
+          // Setup all event listeners before triggering compression
+          const completeListener = async (
+            _event: Electron.IpcRendererEvent,
+            { outputPath }: { outputPath: string }
+          ) => {
+            await updateFileCompressionComplete(file.id, outputPath)
+            window.electron.ipcRenderer.removeAllListeners(`${eventBase}-complete-${file.id}`)
+            window.electron.ipcRenderer.removeAllListeners(`${eventBase}-error-${file.id}`)
+            window.electron.ipcRenderer.removeAllListeners(`${eventBase}-progress-${file.id}`)
+            resolve()
+          }
+
+          const errorListener = (
+            _event: Electron.IpcRendererEvent,
+            { error }: { error: Error }
+          ) => {
+            console.error(`Error compressing ${compressionType}:`, error)
+            window.electron.ipcRenderer.removeAllListeners(`${eventBase}-complete-${file.id}`)
+            window.electron.ipcRenderer.removeAllListeners(`${eventBase}-error-${file.id}`)
+            window.electron.ipcRenderer.removeAllListeners(`${eventBase}-progress-${file.id}`)
+            reject(error)
+          }
+
+          const progressListener = (
+            _event: Electron.IpcRendererEvent,
+            { progress }: { progress: number }
+          ) => {
+            updateFileProgress(file.id, progress)
+          }
+
+          // Register event listeners
+          window.electron.ipcRenderer.on(`${eventBase}-complete-${file.id}`, completeListener)
+          window.electron.ipcRenderer.on(`${eventBase}-error-${file.id}`, errorListener)
+          window.electron.ipcRenderer.on(`${eventBase}-progress-${file.id}`, progressListener)
+
+          // Start compression
+          window.electron.ipcRenderer.send(`compress-${compressionType}`, {
+            id: file.id,
+            path: file.path
+          })
         } catch (error) {
           reject(error)
         }
       })
+    },
+    [updateFileProgress, updateFileCompressionComplete]
+  )
+
+  const handleCompress = React.useCallback(async () => {
+    setIsCompressing(true)
+
+    try {
+      // Sort files to prioritize images
+      const sortedFiles = [...files].sort((a, b) => {
+        if (a.filetype === 'image' && b.filetype !== 'image') return -1
+        if (a.filetype !== 'image' && b.filetype === 'image') return 1
+        return 0
+      })
+
+      // Filter for uncompressed files
+      const filesToCompress = sortedFiles.filter((file) => !file.isCompressed)
+
+      // Process files sequentially
+      for (const file of filesToCompress) {
+        await compressFile(file)
+      }
+    } catch (error) {
+      console.error('Compression failed:', error)
+    } finally {
+      setIsCompressing(false)
     }
-    setIsCompressing(false)
-  }, [files])
+  }, [files, compressFile])
 
   async function openFileDialog() {
     const filePaths = await window.api.openFileDialog()
