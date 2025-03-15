@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
+import useLocalStorage from 'use-local-storage'
 type CustomFile = {
   id: string
   name: string
@@ -34,6 +35,22 @@ export default function App() {
   const [activeTabIndex, setActiveTabIndex] = React.useState(0)
   const [files, setFiles] = React.useState<CustomFile[]>([])
   const [isCompressing, setIsCompressing] = React.useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [settingsConfig, setSettingsConfig] = useLocalStorage<Record<string, Record<string, any>>>(
+    'settings',
+    {
+      image: {
+        compressionQuality: 75,
+        outputFormat: 'same',
+        removeInputFileAfterCompression: false
+      },
+      video: {
+        compressionQuality: 24,
+        removeInputFileAfterCompression: false
+      }
+    }
+  )
+  console.log('🚀 ~ App ~ settingsConfig:', settingsConfig)
 
   const settingsTabs = React.useMemo(
     () =>
@@ -47,11 +64,6 @@ export default function App() {
           id: 'video',
           label: 'Video',
           icon: Video
-        },
-        {
-          id: 'archive',
-          label: 'Archive',
-          icon: FileZip
         }
       ] as const,
     []
@@ -66,7 +78,18 @@ export default function App() {
           component: (
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground/50">low</p>
-              <Slider defaultValue={[75]} max={100} min={1} step={25} />
+              <Slider
+                defaultValue={[settingsConfig.image.compressionQuality]}
+                max={100}
+                min={0}
+                step={25}
+                onValueChange={(value) =>
+                  setSettingsConfig((prev) => ({
+                    ...prev,
+                    image: { ...prev?.image, compressionQuality: value[0] }
+                  }))
+                }
+              />
               <p className="text-sm text-foreground/50">high</p>
             </div>
           )
@@ -77,12 +100,23 @@ export default function App() {
           wrapper: 'flex items-center gap-2 justify-between',
           component: (
             <div>
-              <select className="w-36 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+              <select
+                className="w-36 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                defaultValue={settingsConfig.image.outputFormat}
+                onChange={(e) =>
+                  setSettingsConfig((prev) => ({
+                    ...prev,
+                    image: { ...prev?.image, outputFormat: e.target.value }
+                  }))
+                }
+              >
                 <option value="same">Same as input</option>
-                <option value="jpg">JPG</option>
-                <option value="png">PNG</option>
-                <option value="webp">WebP</option>
-                <option value="avif">AVIF</option>
+                <option value="png" disabled>
+                  PNG
+                </option>
+                <option value="jpg" disabled>
+                  JPG
+                </option>
               </select>
             </div>
           )
@@ -93,13 +127,43 @@ export default function App() {
           wrapper: 'flex items-center gap-2 justify-between',
           component: (
             <div>
-              <Switch />
+              <Switch
+                defaultChecked={settingsConfig.image.removeInputFileAfterCompression}
+                onCheckedChange={(checked) =>
+                  setSettingsConfig((prev) => ({
+                    ...prev,
+                    image: { ...prev?.image, removeInputFileAfterCompression: checked }
+                  }))
+                }
+              />
             </div>
           )
         }
       ],
-      video: [],
-      archive: []
+      video: [
+        {
+          title: 'Compression Quality',
+          description: 'Adjust the compression quality. Higher quality means better compression.',
+          component: (
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-foreground/50">low</p>
+              <Slider
+                defaultValue={[settingsConfig.video.compressionQuality]}
+                max={100}
+                min={0}
+                step={25}
+                onValueChange={(value) =>
+                  setSettingsConfig((prev) => ({
+                    ...prev,
+                    video: { ...prev?.video, compressionQuality: value[0] }
+                  }))
+                }
+              />
+              <p className="text-sm text-foreground/50">high</p>
+            </div>
+          )
+        }
+      ]
     }),
     []
   )
