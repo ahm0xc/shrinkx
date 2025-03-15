@@ -23,6 +23,9 @@ type CustomFile = {
   progress: number
   filetype: 'image' | 'video' | 'unknown'
   path?: string
+  compressionStats?: {
+    size: number
+  }
   outputPath?: string
   preview?: string
 }
@@ -113,7 +116,9 @@ export default function App() {
       return 0
     })
 
-    for (const file of sortedFiles) {
+    const filesToCompress = sortedFiles.filter((file) => !file.isCompressed)
+
+    for (const file of filesToCompress) {
       await new Promise(async (resolve, reject) => {
         try {
           if (file.filetype === 'image') {
@@ -123,11 +128,22 @@ export default function App() {
             })
             window.electron.ipcRenderer.on(
               `compress-image-complete-${file.id}`,
-              (_, { outputPath }) => {
+              async (_, { outputPath }) => {
                 resolve(outputPath)
+                const stats = await window.api.getFilesStats([outputPath])
                 setFiles((prevFiles) =>
                   prevFiles.map((f) =>
-                    f.id === file.id ? { ...f, outputPath, progress: 100, isCompressed: true } : f
+                    f.id === file.id
+                      ? {
+                          ...f,
+                          outputPath,
+                          progress: 100,
+                          isCompressed: true,
+                          compressionStats: {
+                            size: stats[0].size
+                          }
+                        }
+                      : f
                   )
                 )
               }
@@ -151,11 +167,20 @@ export default function App() {
             })
             window.electron.ipcRenderer.on(
               `compress-video-complete-${file.id}`,
-              (_, { outputPath }) => {
+              async (_, { outputPath }) => {
                 resolve(outputPath)
+                const stats = await window.api.getFilesStats([outputPath])
                 setFiles((prevFiles) =>
                   prevFiles.map((f) =>
-                    f.id === file.id ? { ...f, outputPath, progress: 100, isCompressed: true } : f
+                    f.id === file.id
+                      ? {
+                          ...f,
+                          outputPath,
+                          progress: 100,
+                          isCompressed: true,
+                          compressionStats: { size: stats[0].size }
+                        }
+                      : f
                   )
                 )
               }
@@ -257,13 +282,13 @@ export default function App() {
               {files.map((file) => {
                 return (
                   <div key={file.id}>
-                    <div className="flex items-center gap-2 bg-foreground/10 rounded-md p-2 min-w-[220px] relative group">
+                    <div className="flex items-center gap-2 bg-foreground/10 rounded-md p-2 min-w-[200px] relative group">
                       <div className="relative">
                         {file.preview && (
                           <img
                             src={file.preview}
                             alt={file.name}
-                            className="w-10 h-10 rounded-md bg-primary/5"
+                            className="w-12 h-12 rounded-md bg-primary/5"
                           />
                         )}
                         {file.outputPath && (
@@ -279,10 +304,22 @@ export default function App() {
                       </div>
                       <div>
                         <p className="text-sm">
-                          {truncate(getCleanFileName(file.name), 15)}
+                          {truncate(getCleanFileName(file.name), 12)}
                           <span className="text-foreground/50">.{getFileExtension(file.name)}</span>
                         </p>
-                        <p className="text-xs text-foreground/50">{formatBytes(file.size)}</p>
+                        <p className="text-xs text-foreground/50 flex gap-2">
+                          <span className={cn(file.compressionStats?.size && 'line-through')}>
+                            {formatBytes(file.size)}
+                          </span>
+                          <span
+                            className={cn(
+                              'hidden',
+                              file.compressionStats?.size && 'block text-green-500'
+                            )}
+                          >
+                            {formatBytes(file.compressionStats?.size ?? 0)}
+                          </span>
+                        </p>
                         <div className="bg-primary/5 h-1 rounded-full mt-0.5">
                           <div
                             className={cn(
