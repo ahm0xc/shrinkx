@@ -50,7 +50,6 @@ export default function App() {
       }
     }
   )
-  console.log('🚀 ~ App ~ settingsConfig:', settingsConfig)
 
   const settingsTabs = React.useMemo(
     () =>
