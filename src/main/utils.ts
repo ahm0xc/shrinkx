@@ -81,17 +81,20 @@ export async function compressVideo(
 
       const totalDurationInSeconds = parseFloat(durationProcess.stdout) || 0
 
-      const process = execa(ffmpegPath, [
+      const ffmpegArgs = [
         '-i',
         videoPath,
-        '-vcodec',
-        'libx264',
+        '-vcodec', // makes the speed faster
+        'h264_videotoolbox',
         '-crf',
         crf.toString(),
         '-threads',
         '0',
+        '-y', // overwrite the output file if it exists
         outputPath
-      ])
+      ]
+
+      const process = execa(ffmpegPath, ffmpegArgs)
 
       process.stderr?.on('data', (data) => {
         const message = data.toString()
