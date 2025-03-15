@@ -6,7 +6,8 @@ const api = {
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   getFilesStats: (filePaths: string[]) => ipcRenderer.invoke('get-files-stats', { filePaths }),
   getFilePreview: (filePath: string) => ipcRenderer.invoke('get-file-preview', { filePath }),
-  showItemInFolder: (path: string) => ipcRenderer.invoke('show-item-in-folder', { path })
+  showItemInFolder: (path: string) => ipcRenderer.invoke('show-item-in-folder', { path }),
+  removeFile: (path: string) => ipcRenderer.invoke('remove-file', { path })
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

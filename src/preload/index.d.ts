@@ -16,6 +16,7 @@ declare global {
       getFilesStats: (filePaths: string[]) => Promise<FileStats[]>
       getFilePreview: (filePath: string) => Promise<string | null>
       showItemInFolder: (path: string) => Promise<void>
+      removeFile: (path: string) => Promise<void>
     }
   }
 }

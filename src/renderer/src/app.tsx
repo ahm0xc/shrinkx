@@ -1,22 +1,28 @@
 import React from 'react'
 import { FileImage, FileVideo, FileZip, Image, Trash, Video } from '@phosphor-icons/react'
 import { nanoid } from 'nanoid'
-import { FolderIcon } from 'lucide-react'
+import { CircleEllipsisIcon, FolderIcon } from 'lucide-react'
 
 import { Slider } from '@renderer/components/ui/slider'
 import { Switch } from '@renderer/components/ui/switch'
-import { Button } from '@renderer/components/ui/button'
+import { Button, buttonVariants } from '@renderer/components/ui/button'
 import { cn, formatBytes, getCleanFileName, getFileExtension, truncate } from '@renderer/lib/utils'
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../shared/config'
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
 type CustomFile = {
   id: string
   name: string
-  path: string
   size: number
   isCompressed: boolean
   progress: number
   filetype: 'image' | 'video' | 'unknown'
+  path?: string
   outputPath?: string
   preview?: string
 }
@@ -120,7 +126,9 @@ export default function App() {
               (_, { outputPath }) => {
                 resolve(outputPath)
                 setFiles((prevFiles) =>
-                  prevFiles.map((f) => (f.id === file.id ? { ...f, outputPath, progress: 100 } : f))
+                  prevFiles.map((f) =>
+                    f.id === file.id ? { ...f, outputPath, progress: 100, isCompressed: true } : f
+                  )
                 )
               }
             )
@@ -146,7 +154,9 @@ export default function App() {
               (_, { outputPath }) => {
                 resolve(outputPath)
                 setFiles((prevFiles) =>
-                  prevFiles.map((f) => (f.id === file.id ? { ...f, outputPath, progress: 100 } : f))
+                  prevFiles.map((f) =>
+                    f.id === file.id ? { ...f, outputPath, progress: 100, isCompressed: true } : f
+                  )
                 )
               }
             )
@@ -204,6 +214,12 @@ export default function App() {
     window.api.showItemInFolder(file.outputPath)
   }, [])
 
+  const handleRemoveOriginal = React.useCallback((file: CustomFile) => {
+    if (!file.path) return
+    console.log('removing...', file.path)
+    window.api.removeFile(file.path)
+  }, [])
+
   return (
     <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
       <section className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4">
@@ -242,13 +258,6 @@ export default function App() {
                 return (
                   <div key={file.id}>
                     <div className="flex items-center gap-2 bg-foreground/10 rounded-md p-2 min-w-[220px] relative group">
-                      <button
-                        type="button"
-                        className="h-5 w-5 bg-primary text-primary-foreground rounded-full flex justify-center items-center absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        onClick={() => onRemoveFile(file)}
-                      >
-                        <Trash className="size-3" weight="duotone" />
-                      </button>
                       <div className="relative">
                         {file.preview && (
                           <img
@@ -286,6 +295,41 @@ export default function App() {
                           />
                         </div>
                       </div>
+                      <div className="ml-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={cn(
+                                'pointer-events-none opacity-0 text-muted-foreground',
+                                file.isCompressed && 'opacity-100 pointer-events-auto'
+                              )}
+                            >
+                              <CircleEllipsisIcon className="size-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => openFolder(file)}>
+                              <FolderIcon className="size-4" />
+                              Open folder
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className={cn(buttonVariants({ variant: 'destructive' }))}
+                              onClick={() => handleRemoveOriginal(file)}
+                            >
+                              <Trash className="size-4" weight="duotone" />
+                              Remove Original
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <button
+                        type="button"
+                        className="h-5 w-5 bg-primary text-primary-foreground rounded-full flex justify-center items-center absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        onClick={() => onRemoveFile(file)}
+                      >
+                        <Trash className="size-3" weight="duotone" />
+                      </button>
                     </div>
                   </div>
                 )

@@ -143,6 +143,10 @@ app.whenReady().then(() => {
     shell.showItemInFolder(path)
   })
 
+  ipcMain.handle('remove-file', async (_event, { path }) => {
+    fs.unlinkSync(path)
+  })
+
   createWindow()
 
   app.on('activate', function () {
