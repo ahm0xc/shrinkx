@@ -51,10 +51,11 @@ export async function compressVideo(
   }: {
     quality?: number
     onProgress: (progress: number) => void
-    onComplete: (compressedVideoPath: string) => void
+    onComplete: ({ outputPath, timeTook }: { outputPath: string; timeTook: number }) => void
   }
 ) {
-  return new Promise(async (resolve, reject) => {
+  const startTime = Date.now()
+  await new Promise(async (resolve, reject) => {
     try {
       const crf = 24
 
@@ -107,8 +108,11 @@ export async function compressVideo(
 
       await process
 
+      const endTime = Date.now()
+      const timeTook = endTime - startTime
+
       onProgress(100)
-      onComplete(outputPath)
+      onComplete({ outputPath, timeTook })
       resolve(outputPath)
     } catch (error) {
       reject(error)

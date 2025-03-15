@@ -26,6 +26,7 @@ type CustomFile = {
   path?: string
   compressionStats?: {
     size: number
+    timeTook: number
   }
   outputPath?: string
   preview?: string
@@ -176,7 +177,7 @@ export default function App() {
   }, [])
 
   const updateFileCompressionComplete = React.useCallback(
-    async (fileId: string, outputPath: string) => {
+    async (fileId: string, { outputPath, timeTook }: { outputPath: string; timeTook: number }) => {
       try {
         const stats = await window.api.getFilesStats([outputPath])
         setFiles((prevFiles) =>
@@ -188,7 +189,8 @@ export default function App() {
                   progress: 100,
                   isCompressed: true,
                   compressionStats: {
-                    size: stats[0].size
+                    size: stats[0].size,
+                    timeTook
                   }
                 }
               : f
@@ -214,18 +216,18 @@ export default function App() {
           const eventBase = `compress-${compressionType}`
 
           // Setup all event listeners before triggering compression
-          const completeListener = async (
+          const onCompleteListener = async (
             _event: Electron.IpcRendererEvent,
-            { outputPath }: { outputPath: string }
+            { outputPath, timeTook }: { outputPath: string; timeTook: number }
           ) => {
-            await updateFileCompressionComplete(file.id, outputPath)
+            await updateFileCompressionComplete(file.id, { outputPath, timeTook })
             window.electron.ipcRenderer.removeAllListeners(`${eventBase}-complete-${file.id}`)
             window.electron.ipcRenderer.removeAllListeners(`${eventBase}-error-${file.id}`)
             window.electron.ipcRenderer.removeAllListeners(`${eventBase}-progress-${file.id}`)
             resolve()
           }
 
-          const errorListener = (
+          const onErrorListener = (
             _event: Electron.IpcRendererEvent,
             { error }: { error: Error }
           ) => {
@@ -236,7 +238,7 @@ export default function App() {
             reject(error)
           }
 
-          const progressListener = (
+          const onProgressListener = (
             _event: Electron.IpcRendererEvent,
             { progress }: { progress: number }
           ) => {
@@ -244,9 +246,9 @@ export default function App() {
           }
 
           // Register event listeners
-          window.electron.ipcRenderer.on(`${eventBase}-complete-${file.id}`, completeListener)
-          window.electron.ipcRenderer.on(`${eventBase}-error-${file.id}`, errorListener)
-          window.electron.ipcRenderer.on(`${eventBase}-progress-${file.id}`, progressListener)
+          window.electron.ipcRenderer.on(`${eventBase}-complete-${file.id}`, onCompleteListener)
+          window.electron.ipcRenderer.on(`${eventBase}-error-${file.id}`, onErrorListener)
+          window.electron.ipcRenderer.on(`${eventBase}-progress-${file.id}`, onProgressListener)
 
           // Start compression
           window.electron.ipcRenderer.send(`compress-${compressionType}`, {
@@ -368,7 +370,7 @@ export default function App() {
                           <img
                             src={file.preview}
                             alt={file.name}
-                            className="w-12 h-12 rounded-md bg-primary/5"
+                            className="w-12 h-12 rounded-md bg-primary/5 object-cover"
                           />
                         )}
                         {file.outputPath && (
@@ -399,6 +401,11 @@ export default function App() {
                           >
                             {formatBytes(file.compressionStats?.size ?? 0)}
                           </span>
+                          {file.compressionStats?.timeTook && (
+                            <span className="text-foreground/50 text-xs">
+                              took {(file.compressionStats.timeTook / 1000 / 60).toFixed(1)}m
+                            </span>
+                          )}
                         </p>
                         <div className="bg-primary/5 h-1 rounded-full mt-0.5">
                           <div

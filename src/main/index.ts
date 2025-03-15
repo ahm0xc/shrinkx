@@ -129,8 +129,8 @@ app.whenReady().then(() => {
         onProgress: (progress) => {
           event.sender.send(`compress-video-progress-${id}`, { progress })
         },
-        onComplete: (compressedVideoPath) => {
-          event.sender.send(`compress-video-complete-${id}`, { outputPath: compressedVideoPath })
+        onComplete: ({ outputPath, timeTook }) => {
+          event.sender.send(`compress-video-complete-${id}`, { outputPath, timeTook })
         }
       })
     } catch (error) {
