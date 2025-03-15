@@ -78,7 +78,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground/50">low</p>
               <Slider
-                defaultValue={[settingsConfig.image.compressionQuality]}
+                value={[settingsConfig.image.compressionQuality]}
                 max={100}
                 min={0}
                 step={25}
@@ -101,7 +101,7 @@ export default function App() {
             <div>
               <select
                 className="w-36 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                defaultValue={settingsConfig.image.outputFormat}
+                value={settingsConfig.image.outputFormat}
                 onChange={(e) =>
                   setSettingsConfig((prev) => ({
                     ...prev,
@@ -127,7 +127,7 @@ export default function App() {
           component: (
             <div>
               <Switch
-                defaultChecked={settingsConfig.image.removeInputFileAfterCompression}
+                checked={settingsConfig.image.removeInputFileAfterCompression}
                 onCheckedChange={(checked) =>
                   setSettingsConfig((prev) => ({
                     ...prev,
@@ -147,7 +147,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground/50">low</p>
               <Slider
-                defaultValue={[settingsConfig.video.compressionQuality]}
+                value={[settingsConfig.video.compressionQuality]}
                 max={100}
                 min={0}
                 step={25}
@@ -164,7 +164,7 @@ export default function App() {
         }
       ]
     }),
-    []
+    [settingsConfig]
   )
 
   const onRemoveFile = React.useCallback((file: CustomFile) => {
