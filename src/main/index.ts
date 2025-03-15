@@ -4,7 +4,6 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import * as fs from 'fs'
 
 import { compressImage, compressVideo, getImagePreview, getVideoPreview } from './utils'
-
 import icon from '../../resources/icon.png?asset'
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, ALL_EXTENSIONS } from '../shared/config'
 
