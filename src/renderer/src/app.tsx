@@ -42,12 +42,14 @@ export default function App() {
     {
       image: {
         compressionQuality: 75,
-        outputFormat: 'same',
+        outputFormat: 'preserve',
         removeInputFileAfterCompression: false
       },
       video: {
+        resolution: 'preserve',
         compressionQuality: 24,
-        removeInputFileAfterCompression: false
+        removeInputFileAfterCompression: false,
+        removeAudio: false
       }
     }
   )
@@ -110,7 +112,7 @@ export default function App() {
                   }))
                 }
               >
-                <option value="same">Same as input</option>
+                <option value="preserve">Same as input</option>
                 <option value="png" disabled>
                   PNG
                 </option>
@@ -142,6 +144,31 @@ export default function App() {
       ],
       video: [
         {
+          title: 'Resolution',
+          description: 'Select the resolution of the video.',
+          wrapper: 'flex items-center gap-2 justify-between',
+          component: (
+            <div>
+              <select
+                className="w-36 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                value={settingsConfig.video.resolution}
+                onChange={(e) =>
+                  setSettingsConfig((prev) => ({
+                    ...prev,
+                    video: { ...prev?.video, resolution: e.target.value }
+                  }))
+                }
+              >
+                <option value="preserve">Same as input</option>
+                <option value="1920:1080">1080p</option>
+                <option value="1280:720">720p</option>
+                <option value="854:480">480p</option>
+                <option value="640:360">360p</option>
+              </select>
+            </div>
+          )
+        },
+        {
           title: 'Compression Quality',
           description: 'Adjust the compression quality. Higher quality means better compression.',
           component: (
@@ -160,6 +187,42 @@ export default function App() {
                 }
               />
               <p className="text-sm text-foreground/50">high</p>
+            </div>
+          )
+        },
+        {
+          title: 'Remove input file',
+          description: 'Remove the input file after compression.',
+          wrapper: 'flex items-center gap-2 justify-between',
+          component: (
+            <div>
+              <Switch
+                checked={settingsConfig.video.removeInputFileAfterCompression}
+                onCheckedChange={(checked) =>
+                  setSettingsConfig((prev) => ({
+                    ...prev,
+                    video: { ...prev?.video, removeInputFileAfterCompression: checked }
+                  }))
+                }
+              />
+            </div>
+          )
+        },
+        {
+          title: 'Remove audio',
+          description: 'Remove the audio from the video.',
+          wrapper: 'flex items-center gap-2 justify-between',
+          component: (
+            <div>
+              <Switch
+                checked={settingsConfig.video.removeAudio}
+                onCheckedChange={(checked) =>
+                  setSettingsConfig((prev) => ({
+                    ...prev,
+                    video: { ...prev?.video, removeAudio: checked }
+                  }))
+                }
+              />
             </div>
           )
         }
