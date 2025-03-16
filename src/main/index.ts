@@ -106,15 +106,16 @@ app.whenReady().then(() => {
     return null
   })
 
-  ipcMain.on('compress-image', async (event, { id, path }) => {
-    console.log('compress-image', { id, path })
+  ipcMain.on('compress-image', async (event, { id, path, settings }) => {
+    console.log('compress-image', { id, path, settings })
     try {
       await compressImage(path, {
+        settings,
         onProgress: (progress) => {
           event.sender.send(`compress-image-progress-${id}`, { progress })
         },
-        onComplete: (outputPath) => {
-          event.sender.send(`compress-image-complete-${id}`, { outputPath })
+        onComplete: (result) => {
+          event.sender.send(`compress-image-complete-${id}`, result)
         }
       })
     } catch (error) {
@@ -130,8 +131,8 @@ app.whenReady().then(() => {
         onProgress: (progress) => {
           event.sender.send(`compress-video-progress-${id}`, { progress })
         },
-        onComplete: ({ outputPath, timeTook }) => {
-          event.sender.send(`compress-video-complete-${id}`, { outputPath, timeTook })
+        onComplete: (result) => {
+          event.sender.send(`compress-video-complete-${id}`, result)
         }
       })
     } catch (error) {

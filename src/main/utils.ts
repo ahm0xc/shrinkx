@@ -6,32 +6,72 @@ import ffmpeg from 'ffmpeg-static'
 import ffprobe from 'ffprobe-static'
 import sharp from 'sharp'
 
-import { VideoCompressionSettings } from '../shared/types'
+import { ImageCompressionSettings, VideoCompressionSettings } from '../shared/types'
 import { mapRange } from '../shared/utils'
+
+function getFileSize(filePath: string) {
+  return fs.statSync(filePath).size
+}
+
+function deleteFile(filePath: string) {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath)
+  }
+}
+
+function renameFile(oldPath: string, newPath: string) {
+  if (fs.existsSync(oldPath)) {
+    fs.renameSync(oldPath, newPath)
+  }
+}
 
 export async function compressImage(
   imagePath: string,
   {
-    quality = 80,
+    settings,
     onProgress,
     onComplete
   }: {
-    quality?: number
+    settings: ImageCompressionSettings
     onProgress: (progress: number) => void
-    onComplete: (compressedImagePath: string) => void
+    onComplete: ({
+      outputPath,
+      size,
+      timeTook
+    }: {
+      outputPath: string
+      size: number
+      timeTook: number
+    }) => void
   }
 ) {
   return new Promise(async (resolve, reject) => {
     try {
+      const startTime = Date.now()
       const outputDir = path.dirname(imagePath)
       const outputFileName = `compressed-${path.basename(imagePath)}`
       const outputPath = path.join(outputDir, outputFileName)
 
+      const quality = mapRange(settings.compressionQuality ?? 80, 0, 100, 20, 60)
+
       await sharp(imagePath).jpeg({ quality }).toFile(outputPath)
 
-      console.log('complete')
+      const outputFileSize = getFileSize(outputPath)
+
+      if (settings.replaceInputFile) {
+        deleteFile(imagePath)
+        renameFile(outputPath, imagePath)
+      }
+
+      const endTime = Date.now()
+      const timeTook = endTime - startTime
+
       onProgress(100)
-      onComplete(outputPath)
+      onComplete({
+        outputPath,
+        size: outputFileSize,
+        timeTook
+      })
       resolve(outputPath)
     } catch (error) {
       reject(error)
@@ -48,7 +88,15 @@ export async function compressVideo(
   }: {
     settings: VideoCompressionSettings
     onProgress: (progress: number) => void
-    onComplete: ({ outputPath, timeTook }: { outputPath: string; timeTook: number }) => void
+    onComplete: ({
+      outputPath,
+      size,
+      timeTook
+    }: {
+      outputPath: string
+      size: number
+      timeTook: number
+    }) => void
   }
 ) {
   if (!ffmpeg || !ffprobe?.path) {
@@ -66,9 +114,7 @@ export async function compressVideo(
       const outputPath = path.join(outputDir, outputFileName)
 
       // Ensure the output file does not exist before processing
-      if (fs.existsSync(outputPath)) {
-        fs.unlinkSync(outputPath)
-      }
+      deleteFile(outputPath)
 
       // Get duration using ffprobe (much faster than ffmpeg)
       const durationProcess = await execa(ffprobePath, [
@@ -179,8 +225,19 @@ export async function compressVideo(
       const endTime = Date.now()
       const timeTook = endTime - startTime
 
+      const outputFileSize = getFileSize(outputPath)
+
+      if (settings.replaceInputFile) {
+        deleteFile(inputPath)
+        renameFile(outputPath, inputPath)
+      }
+
       onProgress(100)
-      onComplete({ outputPath, timeTook })
+      onComplete({
+        outputPath,
+        size: outputFileSize,
+        timeTook
+      })
       resolve(outputPath)
     } catch (error) {
       reject(error)

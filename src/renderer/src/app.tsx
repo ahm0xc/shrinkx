@@ -43,13 +43,13 @@ export default function App() {
     image: {
       compressionQuality: 75,
       outputFormat: 'preserve',
-      removeInputFileAfterCompression: false
+      replaceInputFile: false
     },
     video: {
       resolution: 'preserve',
       compressionQuality: 25,
       speed: 'default',
-      removeInputFileAfterCompression: false,
+      replaceInputFile: false,
       removeAudio: false
     }
   })
@@ -133,19 +133,19 @@ export default function App() {
           )
         },
         {
-          title: 'Remove input file',
-          description: 'Remove the input file after compression.',
+          title: 'Replace input file',
+          description: 'Replace the input file with the compressed file.',
           wrapper: 'flex items-center gap-2 justify-between',
           component: (
             <div>
               <Switch
-                checked={settingsConfig.image.removeInputFileAfterCompression}
+                checked={settingsConfig.image.replaceInputFile}
                 onCheckedChange={(checked) =>
                   setSettingsConfig(
                     (prev) =>
                       ({
                         ...prev!,
-                        image: { ...prev!.image, removeInputFileAfterCompression: checked }
+                        image: { ...prev!.image, replaceInputFile: checked }
                       }) as CompressionSettings
                   )
                 }
@@ -247,27 +247,6 @@ export default function App() {
           )
         },
         {
-          title: 'Remove input file',
-          description: 'Remove the input file after compression.',
-          wrapper: 'flex items-center gap-2 justify-between',
-          component: (
-            <div>
-              <Switch
-                checked={settingsConfig.video.removeInputFileAfterCompression}
-                onCheckedChange={(checked) =>
-                  setSettingsConfig(
-                    (prev) =>
-                      ({
-                        ...prev!,
-                        video: { ...prev!.video, removeInputFileAfterCompression: checked }
-                      }) as CompressionSettings
-                  )
-                }
-              />
-            </div>
-          )
-        },
-        {
           title: 'Remove audio',
           description: 'Remove the audio from the video.',
           wrapper: 'flex items-center gap-2 justify-between',
@@ -281,6 +260,27 @@ export default function App() {
                       ({
                         ...prev!,
                         video: { ...prev!.video, removeAudio: checked }
+                      }) as CompressionSettings
+                  )
+                }
+              />
+            </div>
+          )
+        },
+        {
+          title: 'Replace input file',
+          description: 'Replace the input file with the compressed file.',
+          wrapper: 'flex items-center gap-2 justify-between',
+          component: (
+            <div>
+              <Switch
+                checked={settingsConfig.video.replaceInputFile}
+                onCheckedChange={(checked) =>
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        video: { ...prev!.video, replaceInputFile: checked }
                       }) as CompressionSettings
                   )
                 }
@@ -302,9 +302,11 @@ export default function App() {
   }, [])
 
   const updateFileCompressionComplete = React.useCallback(
-    async (fileId: string, { outputPath, timeTook }: { outputPath: string; timeTook: number }) => {
+    async (
+      fileId: string,
+      { outputPath, size, timeTook }: { outputPath: string; size: number; timeTook: number }
+    ) => {
       try {
-        const stats = await window.api.getFilesStats([outputPath])
         setFiles((prevFiles) =>
           prevFiles.map((f) =>
             f.id === fileId
@@ -314,7 +316,7 @@ export default function App() {
                   progress: 100,
                   isCompressed: true,
                   compressionStats: {
-                    size: stats[0].size,
+                    size,
                     timeTook
                   }
                 }
@@ -343,9 +345,9 @@ export default function App() {
           // Setup all event listeners before triggering compression
           const onCompleteListener = async (
             _event: Electron.IpcRendererEvent,
-            { outputPath, timeTook }: { outputPath: string; timeTook: number }
+            { outputPath, size, timeTook }: { outputPath: string; size: number; timeTook: number }
           ) => {
-            await updateFileCompressionComplete(file.id, { outputPath, timeTook })
+            await updateFileCompressionComplete(file.id, { outputPath, size, timeTook })
             window.electron.ipcRenderer.removeAllListeners(`${eventBase}-complete-${file.id}`)
             window.electron.ipcRenderer.removeAllListeners(`${eventBase}-error-${file.id}`)
             window.electron.ipcRenderer.removeAllListeners(`${eventBase}-progress-${file.id}`)
