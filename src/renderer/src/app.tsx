@@ -2,12 +2,12 @@ import React from 'react'
 import { FileImage, FileVideo, FileZip, Image, Trash, Video } from '@phosphor-icons/react'
 import { nanoid } from 'nanoid'
 import { CircleEllipsisIcon, FolderIcon } from 'lucide-react'
+import useLocalStorage from 'use-local-storage'
 
 import { Slider } from '@renderer/components/ui/slider'
 import { Switch } from '@renderer/components/ui/switch'
 import { Button, buttonVariants } from '@renderer/components/ui/button'
 import { cn, formatBytes, getCleanFileName, getFileExtension, truncate } from '@renderer/lib/utils'
-import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../shared/config'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
-import useLocalStorage from 'use-local-storage'
+
+import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../shared/config'
+import { CompressionSettings } from '../../shared/types'
+
 type CustomFile = {
   id: string
   name: string
@@ -36,23 +39,20 @@ export default function App() {
   const [activeTabIndex, setActiveTabIndex] = React.useState(0)
   const [files, setFiles] = React.useState<CustomFile[]>([])
   const [isCompressing, setIsCompressing] = React.useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [settingsConfig, setSettingsConfig] = useLocalStorage<Record<string, Record<string, any>>>(
-    'settings',
-    {
-      image: {
-        compressionQuality: 75,
-        outputFormat: 'preserve',
-        removeInputFileAfterCompression: false
-      },
-      video: {
-        resolution: 'preserve',
-        compressionQuality: 24,
-        removeInputFileAfterCompression: false,
-        removeAudio: false
-      }
+  const [settingsConfig, setSettingsConfig] = useLocalStorage<CompressionSettings>('settings', {
+    image: {
+      compressionQuality: 75,
+      outputFormat: 'preserve',
+      removeInputFileAfterCompression: false
+    },
+    video: {
+      resolution: 'preserve',
+      compressionQuality: 25,
+      speed: 'default',
+      removeInputFileAfterCompression: false,
+      removeAudio: false
     }
-  )
+  })
 
   const settingsTabs = React.useMemo(
     () =>
@@ -86,10 +86,13 @@ export default function App() {
                 min={0}
                 step={25}
                 onValueChange={(value) =>
-                  setSettingsConfig((prev) => ({
-                    ...prev,
-                    image: { ...prev?.image, compressionQuality: value[0] }
-                  }))
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        image: { ...prev!.image, compressionQuality: value[0] ?? 0 }
+                      }) as CompressionSettings
+                  )
                 }
               />
               <p className="text-sm text-foreground/50">high</p>
@@ -106,10 +109,16 @@ export default function App() {
                 className="w-36 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 value={settingsConfig.image.outputFormat}
                 onChange={(e) =>
-                  setSettingsConfig((prev) => ({
-                    ...prev,
-                    image: { ...prev?.image, outputFormat: e.target.value }
-                  }))
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        image: {
+                          ...prev!.image,
+                          outputFormat: e.target.value as 'preserve' | 'png' | 'jpeg'
+                        }
+                      }) as CompressionSettings
+                  )
                 }
               >
                 <option value="preserve">Same as input</option>
@@ -132,10 +141,13 @@ export default function App() {
               <Switch
                 checked={settingsConfig.image.removeInputFileAfterCompression}
                 onCheckedChange={(checked) =>
-                  setSettingsConfig((prev) => ({
-                    ...prev,
-                    image: { ...prev?.image, removeInputFileAfterCompression: checked }
-                  }))
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        image: { ...prev!.image, removeInputFileAfterCompression: checked }
+                      }) as CompressionSettings
+                  )
                 }
               />
             </div>
@@ -153,10 +165,21 @@ export default function App() {
                 className="w-36 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 value={settingsConfig.video.resolution}
                 onChange={(e) =>
-                  setSettingsConfig((prev) => ({
-                    ...prev,
-                    video: { ...prev?.video, resolution: e.target.value }
-                  }))
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        video: {
+                          ...prev!.video,
+                          resolution: e.target.value as
+                            | 'preserve'
+                            | '1920:1080'
+                            | '1280:720'
+                            | '854:480'
+                            | '640:360'
+                        }
+                      }) as CompressionSettings
+                  )
                 }
               >
                 <option value="preserve">Same as input</option>
@@ -164,6 +187,36 @@ export default function App() {
                 <option value="1280:720">720p</option>
                 <option value="854:480">480p</option>
                 <option value="640:360">360p</option>
+              </select>
+            </div>
+          )
+        },
+        {
+          title: 'Speed',
+          description: 'Faster compression speed means less quality.',
+          wrapper: 'flex items-center gap-2 justify-between',
+          component: (
+            <div>
+              <select
+                className="w-36 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                value={settingsConfig.video.speed}
+                onChange={(e) =>
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        video: {
+                          ...prev!.video,
+                          speed: e.target.value as CompressionSettings['video']['speed']
+                        }
+                      }) as CompressionSettings
+                  )
+                }
+              >
+                <option value="default">Default</option>
+                <option value="superfast">Fast</option>
+                <option value="veryfast">Medium</option>
+                <option value="veryslow">Slow</option>
               </select>
             </div>
           )
@@ -180,10 +233,13 @@ export default function App() {
                 min={0}
                 step={25}
                 onValueChange={(value) =>
-                  setSettingsConfig((prev) => ({
-                    ...prev,
-                    video: { ...prev?.video, compressionQuality: value[0] }
-                  }))
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        video: { ...prev!.video, compressionQuality: value[0] ?? 0 }
+                      }) as CompressionSettings
+                  )
                 }
               />
               <p className="text-sm text-foreground/50">high</p>
@@ -199,10 +255,13 @@ export default function App() {
               <Switch
                 checked={settingsConfig.video.removeInputFileAfterCompression}
                 onCheckedChange={(checked) =>
-                  setSettingsConfig((prev) => ({
-                    ...prev,
-                    video: { ...prev?.video, removeInputFileAfterCompression: checked }
-                  }))
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        video: { ...prev!.video, removeInputFileAfterCompression: checked }
+                      }) as CompressionSettings
+                  )
                 }
               />
             </div>
@@ -217,10 +276,13 @@ export default function App() {
               <Switch
                 checked={settingsConfig.video.removeAudio}
                 onCheckedChange={(checked) =>
-                  setSettingsConfig((prev) => ({
-                    ...prev,
-                    video: { ...prev?.video, removeAudio: checked }
-                  }))
+                  setSettingsConfig(
+                    (prev) =>
+                      ({
+                        ...prev!,
+                        video: { ...prev!.video, removeAudio: checked }
+                      }) as CompressionSettings
+                  )
                 }
               />
             </div>
@@ -275,7 +337,7 @@ export default function App() {
             return
           }
 
-          const compressionType = file.filetype === 'image' ? 'image' : 'video'
+          const compressionType = file.filetype
           const eventBase = `compress-${compressionType}`
 
           // Setup all event listeners before triggering compression
@@ -316,14 +378,15 @@ export default function App() {
           // Start compression
           window.electron.ipcRenderer.send(`compress-${compressionType}`, {
             id: file.id,
-            path: file.path
+            path: file.path,
+            settings: settingsConfig[compressionType]
           })
         } catch (error) {
           reject(error)
         }
       })
     },
-    [updateFileProgress, updateFileCompressionComplete]
+    [updateFileProgress, updateFileCompressionComplete, settingsConfig]
   )
 
   const handleCompress = React.useCallback(async () => {
@@ -447,7 +510,7 @@ export default function App() {
                           </button>
                         )}
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm">
                           {truncate(getCleanFileName(file.name), 12)}
                           <span className="text-foreground/50">.{getFileExtension(file.name)}</span>

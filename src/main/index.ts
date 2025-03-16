@@ -122,10 +122,11 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.on('compress-video', async (event, { id, path }) => {
-    console.log('compress-video', { id, path })
+  ipcMain.on('compress-video', async (event, { id, path, settings }) => {
+    console.log('compress-video', { id, path, settings })
     try {
       await compressVideo(path, {
+        settings,
         onProgress: (progress) => {
           event.sender.send(`compress-video-progress-${id}`, { progress })
         },

@@ -6,12 +6,8 @@ import ffmpeg from 'ffmpeg-static'
 import ffprobe from 'ffprobe-static'
 import sharp from 'sharp'
 
-if (!ffmpeg || !ffprobe?.path) {
-  throw new Error('ffmpeg or ffprobe binaries not found')
-}
-
-const ffmpegPath = ffmpeg as string
-const ffprobePath = ffprobe.path
+import { VideoCompressionSettings } from '../shared/types'
+import { mapRange } from '../shared/utils'
 
 export async function compressImage(
   imagePath: string,
@@ -44,23 +40,29 @@ export async function compressImage(
 }
 
 export async function compressVideo(
-  videoPath: string,
+  inputPath: string,
   {
+    settings,
     onProgress,
     onComplete
   }: {
-    quality?: number
+    settings: VideoCompressionSettings
     onProgress: (progress: number) => void
     onComplete: ({ outputPath, timeTook }: { outputPath: string; timeTook: number }) => void
   }
 ) {
+  if (!ffmpeg || !ffprobe?.path) {
+    throw new Error('ffmpeg or ffprobe binaries not found')
+  }
+
+  const ffmpegPath = ffmpeg as string
+  const ffprobePath = ffprobe.path
+
   const startTime = Date.now()
   await new Promise(async (resolve, reject) => {
     try {
-      const crf = 24
-
-      const outputDir = path.dirname(videoPath)
-      const outputFileName = `compressed-${path.basename(videoPath)}`
+      const outputDir = path.dirname(inputPath)
+      const outputFileName = `compressed-${path.basename(inputPath)}`
       const outputPath = path.join(outputDir, outputFileName)
 
       // Ensure the output file does not exist before processing
@@ -76,23 +78,86 @@ export async function compressVideo(
         'format=duration',
         '-of',
         'default=noprint_wrappers=1:nokey=1',
-        videoPath
+        inputPath
       ])
+
+      // Get audio bitrate using ffprobe
+      const audioBitrateProcess = await execa(ffprobePath, [
+        '-v',
+        'error',
+        '-select_streams',
+        'a:0',
+        '-show_entries',
+        'stream=bit_rate',
+        '-of',
+        'default=noprint_wrappers=1:nokey=1',
+        inputPath
+      ])
+
+      const audioBitrate = parseInt(audioBitrateProcess.stdout) || 0
+      const audioBitrateInMbps = audioBitrate / 1000000 || 0
+      console.log(`Audio bitrate: ${audioBitrate} bps (${audioBitrateInMbps} Mbps)`)
+
+      // Get video bitrate using ffprobe
+      const videoBitrateProcess = await execa(ffprobePath, [
+        '-v',
+        'error',
+        '-select_streams',
+        'v:0',
+        '-show_entries',
+        'stream=bit_rate',
+        '-of',
+        'default=noprint_wrappers=1:nokey=1',
+        inputPath
+      ])
+
+      const videoBitrate = parseInt(videoBitrateProcess.stdout) || 0
+      const videoBitrateInMbps = videoBitrate / 1000000 || 0
+      console.log(`Video bitrate: ${videoBitrate} bps (${videoBitrateInMbps} Mbps)`)
 
       const totalDurationInSeconds = parseFloat(durationProcess.stdout) || 0
 
-      const ffmpegArgs = [
+      const ffmpegArgs: string[] = []
+
+      const baseFfmpegArgs = [
         '-i',
-        videoPath,
+        inputPath,
         '-vcodec', // makes the speed faster
-        'h264_videotoolbox',
-        '-crf',
-        crf.toString(),
+        'libx264',
         '-threads',
         '0',
-        '-y', // overwrite the output file if it exists
-        outputPath
+        '-acodec',
+        'libopus'
       ]
+
+      ffmpegArgs.push(...baseFfmpegArgs)
+
+      if (settings.resolution !== 'preserve') {
+        ffmpegArgs.push('-vf', `scale=${settings.resolution}`)
+      }
+
+      if (settings.compressionQuality) {
+        const crf = mapRange(settings.compressionQuality ?? 40, 0, 100, 24, 40)
+        ffmpegArgs.push('-crf', crf.toString())
+      }
+
+      if (settings.speed !== 'default') {
+        ffmpegArgs.push('-preset', settings.speed)
+      }
+
+      if (audioBitrateInMbps > 0.6) {
+        ffmpegArgs.push('-b:a', '0.6M')
+      }
+
+      if (videoBitrateInMbps > 5) {
+        ffmpegArgs.push('-b:v', '5M')
+      }
+
+      if (settings.removeAudio) {
+        ffmpegArgs.push('-an')
+      }
+
+      ffmpegArgs.push(outputPath)
 
       const process = execa(ffmpegPath, ffmpegArgs)
 
@@ -136,6 +201,12 @@ export async function getImagePreview(imagePath: string): Promise<string | null>
 }
 
 export async function getVideoPreview(videoPath: string): Promise<string | null> {
+  if (!ffmpeg) {
+    throw new Error('ffmpeg or ffprobe binaries not found')
+  }
+
+  const ffmpegPath = ffmpeg as string
+
   const previewPath = path.join(os.tmpdir(), `preview-${crypto.randomUUID()}.jpg`)
 
   try {
