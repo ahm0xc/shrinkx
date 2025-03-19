@@ -4,10 +4,12 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import * as fs from 'fs'
 
 import {
+  checkDependencies,
   compressImage,
   compressVideo,
   getImagePreview,
   getVideoPreview,
+  installDependencies,
   validateLicenseKey
 } from './utils'
 import icon from '../../resources/icon.png?asset'
@@ -129,6 +131,10 @@ app.whenReady().then(() => {
     return await validateLicenseKey(licenseKey)
   })
 
+  ipcMain.handle('check-dependencies', async () => {
+    return await checkDependencies()
+  })
+
   ipcMain.on('compress-image', async (event, { id, path, settings }) => {
     console.log('compress-image', { id, path, settings })
     try {
@@ -163,27 +169,27 @@ app.whenReady().then(() => {
     }
   })
 
-  // ipcMain.on('install-deps', async (event) => {
-  //   try {
-  //     await installDependencies({
-  //       onProgress: (progress) => {
-  //         console.log('🚀 ~ ipcMain.on ~ progress:', progress)
-  //         event.sender.send('install-deps-progress', { progress })
-  //       },
-  //       onCompleted: (file) => {
-  //         console.log('🚀 ~ ipcMain.on ~ file:', file)
-  //         event.sender.send('install-deps-completed', { file })
-  //       },
-  //       onCancel: () => {
-  //         console.log('Deps installation canceled')
-  //         event.sender.send('install-deps-error', { error: 'Canceled' })
-  //       }
-  //     })
-  //   } catch (error) {
-  //     console.error('Error installing dependencies:', error)
-  //     event.sender.send('install-deps-error', { error })
-  //   }
-  // })
+  ipcMain.on('install-deps', async (event) => {
+    try {
+      await installDependencies({
+        onProgress: (progress) => {
+          console.log('🚀 ~ ipcMain.on ~ progress:', progress)
+          event.sender.send('install-deps-progress', { progress })
+        },
+        onCompleted: () => {
+          console.log('🚀 ~ ipcMain.on ~ completed')
+          event.sender.send('install-deps-completed')
+        },
+        onError: (error) => {
+          console.log('Deps installation canceled')
+          event.sender.send('install-deps-error', { error })
+        }
+      })
+    } catch (error) {
+      console.error('Error installing dependencies:', error)
+      event.sender.send('install-deps-error', { error })
+    }
+  })
 
   createWindow()
 

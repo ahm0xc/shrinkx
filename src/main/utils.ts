@@ -5,10 +5,13 @@ import os from 'os'
 import ffmpeg from 'ffmpeg-static'
 import ffprobe from 'ffprobe-static'
 import sharp from 'sharp'
-import AdmZip from 'adm-zip'
+import { app, BrowserWindow } from 'electron'
+import { download } from 'electron-dl'
+import unzipper from 'unzipper'
 
 import { ImageCompressionSettings, VideoCompressionSettings } from '../shared/types'
 import { mapRange } from '../shared/utils'
+import { DEPENDENCIES } from '../shared/config'
 
 export function getFileSize(filePath: string) {
   return fs.statSync(filePath).size
@@ -41,8 +44,19 @@ export function emptyFolder(folderPath: string) {
 }
 
 export function unzip(zipPath: string, outputFolderPath: string) {
-  const zip = new AdmZip(zipPath)
-  zip.extractAllTo(outputFolderPath, true)
+  console.log('🚀 ~ unzip ~ outputFolderPath:', outputFolderPath)
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(zipPath)
+      .pipe(unzipper.Extract({ path: outputFolderPath }))
+      .on('error', (err) => {
+        console.error('Error extracting ZIP:', err)
+        reject(err)
+      })
+      .on('close', () => {
+        console.log('Extraction complete')
+        resolve(void 0)
+      })
+  })
 }
 
 export async function compressImage(
@@ -322,40 +336,71 @@ export async function getVideoPreview(videoPath: string): Promise<string | null>
   }
 }
 
-// export async function installDependencies({
-//   onProgress,
-//   onCompleted,
-//   onCancel
-// }: {
-//   onProgress?: (progress: DlProgress) => void
-//   onCompleted?: (file: DlFile) => void
-//   onCancel?: () => void
-// }) {
-//   const dependenciesFolderPath = path.join(app.getPath('home'), '.ShrinkX_Dependencies')
-//   emptyFolder(dependenciesFolderPath)
-//   createFolder(dependenciesFolderPath)
+function getDependenciesFolderPath() {
+  return path.join(app.getPath('home'), '.ShrinkX_Dependencies')
+}
 
-//   const focusedWindow = BrowserWindow.getFocusedWindow()
+export async function installDependencies({
+  onProgress,
+  onCompleted,
+  onError
+}: {
+  onProgress?: (progress: number) => void
+  onCompleted?: () => void
+  onError?: (error: string) => void
+}) {
+  try {
+    const dependenciesFolderPath = getDependenciesFolderPath()
 
-//   if (!focusedWindow) throw new Error('No focused window found')
+    const focusedWindow = BrowserWindow.getFocusedWindow()
 
-//   await download(
-//     focusedWindow,
-//     'https://5kkscs4luj.ufs.sh/f/yWO233OZgnAQQx55aYSLBzEZFfVTJO0qmy2v8aj956WQuMwC',
-//     {
-//       directory: dependenciesFolderPath,
-//       filename: 'deps.zip',
-//       onProgress,
-//       onCompleted,
-//       onCancel: () => {
-//         onCancel?.()
-//       }
-//     }
-//   )
+    if (!focusedWindow) throw new Error('No focused window found')
 
-//   unzip(path.join(dependenciesFolderPath, 'deps.zip'), dependenciesFolderPath)
-//   deleteFile(path.join(dependenciesFolderPath, 'deps.zip'))
-// }
+    const { missingDependencies } = checkDependencies()
+    console.log('🚀 ~ missingDependencies:', missingDependencies)
+
+    let shouldLoop = true
+    for (let i = 0; i < missingDependencies.length && shouldLoop; i++) {
+      const zip = missingDependencies[i]
+
+      await download(focusedWindow, zip.url, {
+        filename: `${zip.name}.zip`,
+        directory: dependenciesFolderPath,
+        onProgress: (progress) => {
+          onProgress?.(
+            (progress.percent * 100) / missingDependencies.length +
+              i * (100 / missingDependencies.length)
+          )
+        },
+        onCancel: () => {
+          onError?.('Failed to download dependencies')
+          shouldLoop = false
+        }
+      })
+    }
+    for (const zip of missingDependencies) {
+      await unzip(path.join(dependenciesFolderPath, `${zip.name}.zip`), dependenciesFolderPath)
+      deleteFile(path.join(dependenciesFolderPath, `${zip.name}.zip`))
+    }
+    onCompleted?.()
+  } catch (error) {
+    console.error('Failed to install dependencies:', error)
+    onError?.('Failed to install dependencies')
+  }
+}
+
+export function checkDependencies() {
+  const dependenciesFolderPath = getDependenciesFolderPath()
+  const files = fs.readdirSync(dependenciesFolderPath)
+  const missingDependencies = DEPENDENCIES.filter((dep) => {
+    return !files.some((file) => file.startsWith(dep.name))
+  })
+
+  return {
+    missingDependencies,
+    isInstalled: missingDependencies.length === 0
+  }
+}
 
 type ValidateLicenseKeyResponse = {
   data: {

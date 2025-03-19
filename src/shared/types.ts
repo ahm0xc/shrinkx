@@ -16,3 +16,9 @@ export type VideoCompressionSettings = {
   replaceInputFile: boolean
   removeAudio: boolean
 }
+
+export type Dependency = {
+  name: string
+  url: string
+  size: number
+}

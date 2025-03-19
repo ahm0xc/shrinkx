@@ -10,7 +10,8 @@ const api = {
   removeFile: (path: string) => ipcRenderer.invoke('remove-file', { path }),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', { url }),
   validateLicenseKey: (licenseKey: string) =>
-    ipcRenderer.invoke('validate-license-key', { licenseKey })
+    ipcRenderer.invoke('validate-license-key', { licenseKey }),
+  checkDependencies: () => ipcRenderer.invoke('check-dependencies')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

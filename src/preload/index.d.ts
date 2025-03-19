@@ -20,6 +20,10 @@ declare global {
       removeFile: (path: string) => Promise<void>
       openExternal: (url: string) => Promise<void>
       validateLicenseKey: (licenseKey: string) => Promise<ValidateLicenseKeyResponse>
+      checkDependencies: () => Promise<{
+        isInstalled: boolean
+        missingDependencies: Dependency[]
+      }>
     }
   }
 }
