@@ -12,10 +12,6 @@ const steps = [
     id: 'welcome',
     component: WelcomeStep
   },
-  // {
-  //   id: 'install',
-  //   component: InstallStep
-  // },
   {
     id: 'license',
     component: LicenseStep
