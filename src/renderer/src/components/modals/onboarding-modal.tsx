@@ -4,12 +4,7 @@ import { ReactCompareSlider } from 'react-compare-slider'
 import Logo from '@renderer/components/logo'
 import { Dialog, DialogContent, DialogTitle } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot
-} from '@renderer/components/ui/input-otp'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@renderer/components/ui/input-otp'
 import { validateLicenseKey } from '@renderer/lib/utils'
 
 const steps = [
