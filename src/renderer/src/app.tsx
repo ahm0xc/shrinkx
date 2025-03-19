@@ -18,6 +18,7 @@ import {
 
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../shared/config'
 import { CompressionSettings } from '../../shared/types'
+import OnBoardingModal from './components/modals/onboarding-modal'
 
 type CustomFile = {
   id: string
@@ -456,193 +457,195 @@ export default function App() {
   }, [])
 
   return (
-    <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
-      <section className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4">
-        <div className="w-full flex-1 bg-foreground/5 rounded-[40px]">
-          <div
-            className={cn(
-              'w-full h-full flex items-center border-4 border-dashed border-transparent justify-center flex-col rounded-[inherit]'
-              // isDragActive && 'border-green-500/50 bg-green-500/10'
-            )}
-          >
-            <div className="flex gap-0 text-foreground/50">
-              <FileImage
-                className="-rotate-12 w-[10vw] h-[10vw] translate-x-1/4"
-                weight="regular"
-              />
-              <FileZip className="rotate-0 w-[10vw] h-[10vw]" weight="regular" />
-              <FileVideo
-                className="rotate-12 w-[10vw] h-[10vw] -translate-x-1/4"
-                weight="regular"
-              />
+    <React.Fragment>
+      <OnBoardingModal />
+      <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
+        <section className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4">
+          <div className="w-full flex-1 bg-foreground/5 rounded-[40px]">
+            <div
+              className={cn(
+                'w-full h-full flex items-center border-4 border-dashed border-transparent justify-center flex-col rounded-[inherit]'
+                // isDragActive && 'border-green-500/50 bg-green-500/10'
+              )}
+            >
+              <div className="flex gap-0 text-foreground/50">
+                <FileImage
+                  className="-rotate-12 w-[10vw] h-[10vw] translate-x-1/4"
+                  weight="regular"
+                />
+                <FileZip className="rotate-0 w-[10vw] h-[10vw]" weight="regular" />
+                <FileVideo
+                  className="rotate-12 w-[10vw] h-[10vw] -translate-x-1/4"
+                  weight="regular"
+                />
+              </div>
+              <p className="text-sm text-foreground/50 mt-4">Drop files here or click to upload</p>
+              <Button onClick={openFileDialog} className="w-fit mt-4">
+                Select files
+              </Button>
             </div>
-            <p className="text-sm text-foreground/50 mt-4">Drop files here or click to upload</p>
-
-            <Button onClick={openFileDialog} className="w-fit mt-4">
-              Select files
-            </Button>
           </div>
-        </div>
-        {files.length !== 0 && (
-          <div
-            aria-label="uploaded-file-preview-area"
-            className="p-4 gap-2 h-[50vh] overflow-y-auto bg-foreground/5 rounded-[40px]"
-          >
-            <div className="flex flex-wrap gap-2">
-              {files.map((file) => {
-                return (
-                  <div key={file.id}>
-                    <div className="flex items-center gap-2 bg-foreground/10 rounded-md p-2 min-w-[200px] relative group">
-                      <div className="relative">
-                        {file.preview && (
-                          <img
-                            src={file.preview}
-                            alt={file.name}
-                            className="w-12 h-12 rounded-md bg-primary/5 object-cover"
-                          />
-                        )}
-                        {file.outputPath && (
-                          <button
-                            type="button"
-                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md p-3"
-                            onClick={() => openFolder(file)}
-                            title="Open folder"
-                          >
-                            <FolderIcon className="size-4" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm">
-                          {truncate(getCleanFileName(file.name), 12)}
-                          <span className="text-foreground/50">.{getFileExtension(file.name)}</span>
-                        </p>
-                        <p className="text-xs text-foreground/50 flex gap-2">
-                          <span className={cn(file.compressionStats?.size && 'line-through')}>
-                            {formatBytes(file.size)}
-                          </span>
-                          <span
-                            className={cn(
-                              'hidden',
-                              file.compressionStats?.size && 'block text-green-500'
-                            )}
-                          >
-                            {formatBytes(file.compressionStats?.size ?? 0)}
-                          </span>
-                          {file.compressionStats?.timeTook && (
-                            <span className="text-foreground/50 text-xs">
-                              took {(file.compressionStats.timeTook / 1000 / 60).toFixed(1)}m
-                            </span>
+          {files.length !== 0 && (
+            <div
+              aria-label="uploaded-file-preview-area"
+              className="p-4 gap-2 h-[50vh] overflow-y-auto bg-foreground/5 rounded-[40px]"
+            >
+              <div className="flex flex-wrap gap-2">
+                {files.map((file) => {
+                  return (
+                    <div key={file.id}>
+                      <div className="flex items-center gap-2 bg-foreground/10 rounded-md p-2 min-w-[200px] relative group">
+                        <div className="relative">
+                          {file.preview && (
+                            <img
+                              src={file.preview}
+                              alt={file.name}
+                              className="w-12 h-12 rounded-md bg-primary/5 object-cover"
+                            />
                           )}
-                        </p>
-                        <div className="bg-primary/5 h-1 rounded-full mt-0.5">
-                          <div
-                            className={cn(
-                              'h-full bg-primary rounded-[inherit]',
-                              file.progress === 0 && 'opacity-0',
-                              file.progress > 0 && 'opacity-100',
-                              file.progress === 100 && 'bg-green-500'
-                            )}
-                            style={{ width: `${file.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="ml-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                          {file.outputPath && (
                             <button
+                              type="button"
+                              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md p-3"
+                              onClick={() => openFolder(file)}
+                              title="Open folder"
+                            >
+                              <FolderIcon className="size-4" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            {truncate(getCleanFileName(file.name), 12)}
+                            <span className="text-foreground/50">
+                              .{getFileExtension(file.name)}
+                            </span>
+                          </p>
+                          <p className="text-xs text-foreground/50 flex gap-2">
+                            <span className={cn(file.compressionStats?.size && 'line-through')}>
+                              {formatBytes(file.size)}
+                            </span>
+                            <span
                               className={cn(
-                                'pointer-events-none opacity-0 text-muted-foreground',
-                                file.isCompressed && 'opacity-100 pointer-events-auto'
+                                'hidden',
+                                file.compressionStats?.size && 'block text-green-500'
                               )}
                             >
-                              <CircleEllipsisIcon className="size-4" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => openFolder(file)}>
-                              <FolderIcon className="size-4" />
-                              Open folder
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className={cn(buttonVariants({ variant: 'destructive' }))}
-                              onClick={() => handleRemoveOriginal(file)}
-                            >
-                              <Trash className="size-4" weight="duotone" />
-                              Remove Original
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {formatBytes(file.compressionStats?.size ?? 0)}
+                            </span>
+                            {file.compressionStats?.timeTook && (
+                              <span className="text-foreground/50 text-xs">
+                                took {(file.compressionStats.timeTook / 1000 / 60).toFixed(1)}m
+                              </span>
+                            )}
+                          </p>
+                          <div className="bg-primary/5 h-1 rounded-full mt-0.5">
+                            <div
+                              className={cn(
+                                'h-full bg-primary rounded-[inherit]',
+                                file.progress === 0 && 'opacity-0',
+                                file.progress > 0 && 'opacity-100',
+                                file.progress === 100 && 'bg-green-500'
+                              )}
+                              style={{ width: `${file.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="ml-1">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className={cn(
+                                  'pointer-events-none opacity-0 text-muted-foreground',
+                                  file.isCompressed && 'opacity-100 pointer-events-auto'
+                                )}
+                              >
+                                <CircleEllipsisIcon className="size-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openFolder(file)}>
+                                <FolderIcon className="size-4" />
+                                Open folder
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className={cn(buttonVariants({ variant: 'destructive' }))}
+                                onClick={() => handleRemoveOriginal(file)}
+                              >
+                                <Trash className="size-4" weight="duotone" />
+                                Remove Original
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <button
+                          type="button"
+                          className="h-5 w-5 bg-primary text-primary-foreground rounded-full flex justify-center items-center absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          onClick={() => onRemoveFile(file)}
+                        >
+                          <Trash className="size-3" weight="duotone" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="h-5 w-5 bg-primary text-primary-foreground rounded-full flex justify-center items-center absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        onClick={() => onRemoveFile(file)}
-                      >
-                        <Trash className="size-3" weight="duotone" />
-                      </button>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-      </section>
-      <section className="col-span-2 h-full p-4 pl-2 pt-0">
-        <div className="w-full h-full bg-foreground/5 rounded-[40px]">
-          <div className="w-full h-full p-6 gap-4 flex flex-col">
-            <div aria-label="settings-title">
-              <h2 className="font-medium">Settings</h2>
-              <p className="text-sm text-foreground/50">
-                Configure your settings to customize compression behavior.
-              </p>
-            </div>
-            <div aria-label="settings-tab-bar">
-              <div className="flex items-center w-full bg-foreground/5 rounded-full h-11 border p-1">
-                {settingsTabs.map((tab, index) => (
-                  <button
-                    key={tab.label}
-                    className={cn(
-                      'flex items-center gap-2 flex-1 justify-center h-full rounded-full',
-                      index === activeTabIndex && 'bg-foreground/10'
-                    )}
-                    onClick={() => setActiveTabIndex(index)}
-                  >
-                    <tab.icon />
-                    <p>{tab.label}</p>
-                  </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
-
-            <div
-              aria-label="settings-tab-content"
-              className="space-y-6 max-h-[calc(100vh-10rem)] overflow-y-auto"
-            >
-              {settings[settingsTabs[activeTabIndex].id].map((setting) => (
-                <div key={setting.title} className={setting.wrapper}>
-                  <div>
-                    <h3 className="text-sm font-medium">{setting.title}</h3>
-                    <p className="text-sm text-foreground/50 mt-1">{setting.description}</p>
-                  </div>
-                  <div className="mt-4">{setting.component}</div>
+          )}
+        </section>
+        <section className="col-span-2 h-full p-4 pl-2 pt-0">
+          <div className="w-full h-full bg-foreground/5 rounded-[40px]">
+            <div className="w-full h-full p-6 gap-4 flex flex-col">
+              <div aria-label="settings-title">
+                <h2 className="font-medium">Settings</h2>
+                <p className="text-sm text-foreground/50">
+                  Configure your settings to customize compression behavior.
+                </p>
+              </div>
+              <div aria-label="settings-tab-bar">
+                <div className="flex items-center w-full bg-foreground/5 rounded-full h-11 border p-1">
+                  {settingsTabs.map((tab, index) => (
+                    <button
+                      key={tab.label}
+                      className={cn(
+                        'flex items-center gap-2 flex-1 justify-center h-full rounded-full',
+                        index === activeTabIndex && 'bg-foreground/10'
+                      )}
+                      onClick={() => setActiveTabIndex(index)}
+                    >
+                      <tab.icon />
+                      <p>{tab.label}</p>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            <div aria-label="settings-footer" className="mt-auto">
-              <Button className="w-full" disabled={isCompressing} onClick={handleCompress}>
-                Compress
-              </Button>
-              <p className="text-sm text-foreground/50 text-center mt-2">
-                Estimated time: ~2 minutes
-              </p>
+              </div>
+              <div
+                aria-label="settings-tab-content"
+                className="space-y-6 max-h-[calc(100vh-10rem)] overflow-y-auto"
+              >
+                {settings[settingsTabs[activeTabIndex].id].map((setting) => (
+                  <div key={setting.title} className={setting.wrapper}>
+                    <div>
+                      <h3 className="text-sm font-medium">{setting.title}</h3>
+                      <p className="text-sm text-foreground/50 mt-1">{setting.description}</p>
+                    </div>
+                    <div className="mt-4">{setting.component}</div>
+                  </div>
+                ))}
+              </div>
+              <div aria-label="settings-footer" className="mt-auto">
+                <Button className="w-full" disabled={isCompressing} onClick={handleCompress}>
+                  Compress
+                </Button>
+                <p className="text-sm text-foreground/50 text-center mt-2">
+                  Estimated time: ~2 minutes
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </React.Fragment>
   )
 }

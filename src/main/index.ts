@@ -3,7 +3,13 @@ import { basename, join, extname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import * as fs from 'fs'
 
-import { compressImage, compressVideo, getImagePreview, getVideoPreview } from './utils'
+import {
+  compressImage,
+  compressVideo,
+  getImagePreview,
+  getVideoPreview,
+  validateLicenseKey
+} from './utils'
 import icon from '../../resources/icon.png?asset'
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, ALL_EXTENSIONS } from '../shared/config'
 
@@ -24,7 +30,7 @@ function createWindow(): void {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
-      contextIsolation: false,
+      contextIsolation: true,
       nodeIntegration: true
     }
   })
@@ -106,6 +112,23 @@ app.whenReady().then(() => {
     return null
   })
 
+  ipcMain.handle('remove-file', async (_event, { path }) => {
+    fs.unlinkSync(path)
+  })
+
+  ipcMain.handle('show-item-in-folder', async (_event, { path }) => {
+    shell.showItemInFolder(path)
+  })
+
+  ipcMain.handle('open-external', async (_event, { url }) => {
+    console.log('open-external', { url })
+    shell.openExternal(url)
+  })
+
+  ipcMain.handle('validate-license-key', async (_event, { licenseKey }) => {
+    return await validateLicenseKey(licenseKey)
+  })
+
   ipcMain.on('compress-image', async (event, { id, path, settings }) => {
     console.log('compress-image', { id, path, settings })
     try {
@@ -140,13 +163,27 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('show-item-in-folder', async (_event, { path }) => {
-    shell.showItemInFolder(path)
-  })
-
-  ipcMain.handle('remove-file', async (_event, { path }) => {
-    fs.unlinkSync(path)
-  })
+  // ipcMain.on('install-deps', async (event) => {
+  //   try {
+  //     await installDependencies({
+  //       onProgress: (progress) => {
+  //         console.log('🚀 ~ ipcMain.on ~ progress:', progress)
+  //         event.sender.send('install-deps-progress', { progress })
+  //       },
+  //       onCompleted: (file) => {
+  //         console.log('🚀 ~ ipcMain.on ~ file:', file)
+  //         event.sender.send('install-deps-completed', { file })
+  //       },
+  //       onCancel: () => {
+  //         console.log('Deps installation canceled')
+  //         event.sender.send('install-deps-error', { error: 'Canceled' })
+  //       }
+  //     })
+  //   } catch (error) {
+  //     console.error('Error installing dependencies:', error)
+  //     event.sender.send('install-deps-error', { error })
+  //   }
+  // })
 
   createWindow()
 

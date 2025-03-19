@@ -23,3 +23,9 @@ export function formatBytes(bytes: number) {
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
   return Math.round(bytes / Math.pow(1000, i)) + ' ' + sizes[i]
 }
+
+export async function validateLicenseKey(licenseKey: string) {
+  const response = await window.api.validateLicenseKey(licenseKey)
+  console.log('🚀 ~ validateLicenseKey ~ response:', response)
+  return response
+}

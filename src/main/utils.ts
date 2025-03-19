@@ -5,24 +5,44 @@ import os from 'os'
 import ffmpeg from 'ffmpeg-static'
 import ffprobe from 'ffprobe-static'
 import sharp from 'sharp'
+import AdmZip from 'adm-zip'
 
 import { ImageCompressionSettings, VideoCompressionSettings } from '../shared/types'
 import { mapRange } from '../shared/utils'
 
-function getFileSize(filePath: string) {
+export function getFileSize(filePath: string) {
   return fs.statSync(filePath).size
 }
 
-function deleteFile(filePath: string) {
+export function deleteFile(filePath: string) {
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath)
   }
 }
 
-function renameFile(oldPath: string, newPath: string) {
+export function renameFile(oldPath: string, newPath: string) {
   if (fs.existsSync(oldPath)) {
     fs.renameSync(oldPath, newPath)
   }
+}
+
+export function createFolder(folderPath: string) {
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true })
+  }
+}
+
+export function emptyFolder(folderPath: string) {
+  if (fs.existsSync(folderPath)) {
+    fs.readdirSync(folderPath).forEach((file) => {
+      fs.unlinkSync(path.join(folderPath, file))
+    })
+  }
+}
+
+export function unzip(zipPath: string, outputFolderPath: string) {
+  const zip = new AdmZip(zipPath)
+  zip.extractAllTo(outputFolderPath, true)
 }
 
 export async function compressImage(
@@ -298,6 +318,76 @@ export async function getVideoPreview(videoPath: string): Promise<string | null>
       }
     } catch (error) {
       console.error('Failed to clean up preview file:', error)
+    }
+  }
+}
+
+// export async function installDependencies({
+//   onProgress,
+//   onCompleted,
+//   onCancel
+// }: {
+//   onProgress?: (progress: DlProgress) => void
+//   onCompleted?: (file: DlFile) => void
+//   onCancel?: () => void
+// }) {
+//   const dependenciesFolderPath = path.join(app.getPath('home'), '.ShrinkX_Dependencies')
+//   emptyFolder(dependenciesFolderPath)
+//   createFolder(dependenciesFolderPath)
+
+//   const focusedWindow = BrowserWindow.getFocusedWindow()
+
+//   if (!focusedWindow) throw new Error('No focused window found')
+
+//   await download(
+//     focusedWindow,
+//     'https://5kkscs4luj.ufs.sh/f/yWO233OZgnAQQx55aYSLBzEZFfVTJO0qmy2v8aj956WQuMwC',
+//     {
+//       directory: dependenciesFolderPath,
+//       filename: 'deps.zip',
+//       onProgress,
+//       onCompleted,
+//       onCancel: () => {
+//         onCancel?.()
+//       }
+//     }
+//   )
+
+//   unzip(path.join(dependenciesFolderPath, 'deps.zip'), dependenciesFolderPath)
+//   deleteFile(path.join(dependenciesFolderPath, 'deps.zip'))
+// }
+
+type ValidateLicenseKeyResponse = {
+  data: {
+    isValid: boolean
+    user: {
+      id: string
+      email: string
+      name: string
+      imageUrl: string
+    }
+  } | null
+  error: string | null
+}
+
+export async function validateLicenseKey(licenseKey: string): Promise<ValidateLicenseKeyResponse> {
+  try {
+    const response = await fetch('https://shrinkx.vercel.app/api/validate-license', {
+      method: 'POST',
+      body: JSON.stringify({ licenseKey })
+    })
+    if (!response.ok) {
+      return {
+        data: null,
+        error: 'Invalid license key'
+      }
+    }
+    const data = await response.json()
+    return { data, error: null }
+  } catch {
+    return {
+      data: null,
+      error: 'Failed to validate license key'
     }
   }
 }
