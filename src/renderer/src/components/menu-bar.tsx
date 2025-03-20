@@ -1,21 +1,27 @@
 import React from 'react'
-import { CrownIcon } from 'lucide-react'
+import { CrownIcon, LogOutIcon } from 'lucide-react'
 
 import { Dialog, DialogTitle, DialogContent, DialogTrigger } from './ui/dialog'
 import LicenseModalContent from './modals/license-modal-content'
 import { useAuth } from '@renderer/context/auth-context'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from './ui/dropdown-menu'
 
 export default function MenuBarDragArea() {
   const [isLicenseModalOpen, setIsLicenseModalOpen] = React.useState(false)
 
-  const { licenseKey, user } = useAuth()
+  const { licenseKey, user, logout } = useAuth()
 
   return (
     <div className="h-10 w-full z-50">
       <div className="flex items-center justify-between gap-2 w-full h-full">
         <div className="pl-20"></div>
         <div
-          className="flex-1 flex items-center justify-center"
+          className="flex-1 flex items-center justify-center h-full"
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
           <p className="text-xs text-foreground/50">Shrink X</p>
@@ -43,9 +49,19 @@ export default function MenuBarDragArea() {
           )}
 
           {user && (
-            <button type="button">
-              <img src={user?.imageUrl} alt={user?.name} className="size-4 rounded-full" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button">
+                  <img src={user?.imageUrl} alt={user?.name} className="size-4 rounded-full" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={logout}>
+                  <LogOutIcon className="!size-3" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

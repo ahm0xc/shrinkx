@@ -14,18 +14,25 @@ type AuthContext = {
   setLicenseKey: (licenseKey: string) => void
   user: User | null
   setUser: (user: User) => void
+  logout: () => void
 }
 
 const authContext = React.createContext<AuthContext>({
   licenseKey: null,
   setLicenseKey: () => {},
   user: null,
-  setUser: () => {}
+  setUser: () => {},
+  logout: () => {}
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [licenseKey, setLicenseKey] = useLocalStorage<string | null>('shrinkx-license-key', null)
   const [user, setUser] = useLocalStorage<User | null>('shrinkx-user', null)
+
+  function logout() {
+    setLicenseKey(null)
+    setUser(null)
+  }
 
   React.useEffect(() => {
     async function validate() {
@@ -44,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [licenseKey])
 
   return (
-    <authContext.Provider value={{ licenseKey, setLicenseKey, user, setUser }}>
+    <authContext.Provider value={{ licenseKey, setLicenseKey, user, setUser, logout }}>
       {children}
     </authContext.Provider>
   )
