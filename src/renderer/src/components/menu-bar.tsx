@@ -3,30 +3,12 @@ import { CrownIcon } from 'lucide-react'
 
 import { Dialog, DialogTitle, DialogContent, DialogTrigger } from './ui/dialog'
 import LicenseModalContent from './modals/license-modal-content'
-
-type User = {
-  id: string
-  name: string
-  email: string
-  imageUrl: string
-}
+import { useAuth } from '@renderer/context/auth-context'
 
 export default function MenuBarDragArea() {
   const [isLicenseModalOpen, setIsLicenseModalOpen] = React.useState(false)
-  const [licenseKey, setLicenseKey] = React.useState<string | null>(null)
-  const [user, setUser] = React.useState<User | null>(null)
-  console.log('🚀 ~ MenuBarDragArea ~ user:', user)
 
-  React.useEffect(() => {
-    const licenseKey = window.localStorage.getItem('shrinkx-license-key')
-    const user = window.localStorage.getItem('shrinkx-user')
-    if (licenseKey) {
-      setLicenseKey(licenseKey)
-    }
-    if (user) {
-      setUser(JSON.parse(user))
-    }
-  }, [])
+  const { licenseKey, user } = useAuth()
 
   return (
     <div className="h-10 w-full z-50">
@@ -53,10 +35,7 @@ export default function MenuBarDragArea() {
               <DialogContent>
                 <DialogTitle className="sr-only">Upgrade to Pro</DialogTitle>
                 <LicenseModalContent
-                  onValidated={(licenseKey) => {
-                    setLicenseKey(licenseKey)
-                    setIsLicenseModalOpen(false)
-                  }}
+                  onValidated={() => setIsLicenseModalOpen(false)}
                   onSkip={() => setIsLicenseModalOpen(false)}
                 />
               </DialogContent>

@@ -402,9 +402,10 @@ export function checkDependencies() {
   }
 }
 
-type ValidateLicenseKeyResponse = {
+export type ValidateLicenseKeyResponse = {
   data: {
     isValid: boolean
+    licenseKey: string
     user: {
       id: string
       email: string
@@ -428,7 +429,7 @@ export async function validateLicenseKey(licenseKey: string): Promise<ValidateLi
       }
     }
     const data = await response.json()
-    return { data, error: null }
+    return { data: { ...data, licenseKey }, error: null }
   } catch {
     return {
       data: null,

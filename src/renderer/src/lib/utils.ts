@@ -26,6 +26,5 @@ export function formatBytes(bytes: number) {
 
 export async function validateLicenseKey(licenseKey: string) {
   const response = await window.api.validateLicenseKey(licenseKey)
-  console.log('🚀 ~ validateLicenseKey ~ response:', response)
   return response
 }

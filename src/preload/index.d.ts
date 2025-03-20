@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { ValidateLicenseKeyResponse } from '@renderer/lib/utils'
+import type { ValidateLicenseKeyResponse } from '../main/utils'
 
 type FileStats = {
   name: string

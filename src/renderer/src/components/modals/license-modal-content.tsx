@@ -4,6 +4,7 @@ import { validateLicenseKey } from '@renderer/lib/utils'
 import Logo from '@renderer/components/logo'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@renderer/components/ui/input-otp'
 import { Button } from '@renderer/components/ui/button'
+import { useAuth } from '@renderer/context/auth-context'
 
 export default function LicenseModalContent({
   onValidated,
@@ -16,6 +17,8 @@ export default function LicenseModalContent({
   const [isValidating, setIsValidating] = React.useState(false)
   const [validationError, setValidationError] = React.useState<string | null>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
+
+  const { setLicenseKey: setLocalLicenseKey, setUser: setLocalUser } = useAuth()
 
   async function handleActivation() {
     if (!licenseKey) {
@@ -32,12 +35,12 @@ export default function LicenseModalContent({
     setIsValidating(false)
     if (error) {
       console.error(error)
-      setValidationError(error.message)
+      setValidationError(error)
       return
     }
     if (data?.isValid) {
-      window.localStorage.setItem('shrinkx-license-key', licenseKey)
-      window.localStorage.setItem('shrinkx-user', JSON.stringify(data.user))
+      setLocalLicenseKey(data.licenseKey)
+      setLocalUser(data.user)
       onValidated(licenseKey)
     }
   }
