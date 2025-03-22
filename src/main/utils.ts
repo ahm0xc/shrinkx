@@ -1,8 +1,6 @@
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
-import ffmpeg from 'ffmpeg-static'
-import ffprobe from 'ffprobe-static'
 import sharp from 'sharp'
 import { spawn } from 'child_process'
 import { app, BrowserWindow } from 'electron'
@@ -108,6 +106,11 @@ export function unzip(zipPath: string, outputFolderPath: string) {
   })
 }
 
+export function getExecutablePath(dependencyName: string) {
+  const dependenciesFolderPath = getDependenciesFolderPath()
+  return path.join(dependenciesFolderPath, dependencyName)
+}
+
 export async function compressImage(
   imagePath: string,
   {
@@ -182,12 +185,12 @@ export async function compressVideo(
     }) => void
   }
 ) {
-  if (!ffmpeg || !ffprobe?.path) {
+  const ffmpegPath = getExecutablePath('ffmpeg')
+  const ffprobePath = getExecutablePath('ffprobe')
+
+  if (!ffmpegPath || !ffprobePath) {
     throw new Error('ffmpeg or ffprobe binaries not found')
   }
-
-  const ffmpegPath = ffmpeg as string
-  const ffprobePath = ffprobe.path
 
   const startTime = Date.now()
   await new Promise(async (resolve, reject) => {
@@ -341,11 +344,11 @@ export async function getImagePreview(imagePath: string): Promise<string | null>
 }
 
 export async function getVideoPreview(videoPath: string): Promise<string | null> {
-  if (!ffmpeg) {
-    throw new Error('ffmpeg or ffprobe binaries not found')
-  }
+  const ffmpegPath = getExecutablePath('ffmpeg')
 
-  const ffmpegPath = ffmpeg as string
+  if (!ffmpegPath) {
+    throw new Error('ffmpeg binary not found')
+  }
 
   const previewPath = path.join(os.tmpdir(), `preview-${crypto.randomUUID()}.jpg`)
 
@@ -426,10 +429,13 @@ export async function installDependencies({
           shouldLoop = false
         }
       })
-    }
-    for (const zip of missingDependencies) {
+
       await unzip(path.join(dependenciesFolderPath, `${zip.name}.zip`), dependenciesFolderPath)
       deleteFile(path.join(dependenciesFolderPath, `${zip.name}.zip`))
+
+      if (zip.executable) {
+        await execa('chmod', ['+x', path.join(dependenciesFolderPath, zip.name)])
+      }
     }
     onCompleted?.()
   } catch (error) {

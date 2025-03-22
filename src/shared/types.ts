@@ -21,4 +21,5 @@ export type Dependency = {
   name: string
   url: string
   size: number
+  executable: boolean
 }

@@ -8,11 +8,13 @@ export const DEPENDENCIES: Dependency[] = [
   {
     name: 'ffmpeg',
     url: 'https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-macos-64.zip',
-    size: 25
+    size: 25,
+    executable: true
   },
   {
     name: 'ffprobe',
     url: 'https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-macos-64.zip',
-    size: 25
+    size: 25,
+    executable: true
   }
 ]
