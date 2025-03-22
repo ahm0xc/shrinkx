@@ -1,5 +1,5 @@
 import React from 'react'
-import { FileImage, FileVideo, FileZip, Image, Trash, Video } from '@phosphor-icons/react'
+import { FileImage, FileVideo, FileArchive as FileZip, Image, Trash, Video } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { CircleEllipsisIcon, FolderIcon } from 'lucide-react'
 import useLocalStorage from 'use-local-storage'
@@ -469,15 +469,9 @@ export default function App() {
               )}
             >
               <div className="flex gap-0 text-foreground/50">
-                <FileImage
-                  className="-rotate-12 w-[10vw] h-[10vw] translate-x-1/4"
-                  weight="regular"
-                />
-                <FileZip className="rotate-0 w-[10vw] h-[10vw]" weight="regular" />
-                <FileVideo
-                  className="rotate-12 w-[10vw] h-[10vw] -translate-x-1/4"
-                  weight="regular"
-                />
+                <FileImage className="-rotate-12 w-[10vw] h-[10vw] translate-x-1/4" />
+                <FileZip className="rotate-0 w-[10vw] h-[10vw]" />
+                <FileVideo className="rotate-12 w-[10vw] h-[10vw] -translate-x-1/4" />
               </div>
               <p className="text-sm text-foreground/50 mt-4">Drop files here or click to upload</p>
               <Button onClick={openFileDialog} className="w-fit mt-4">
@@ -573,7 +567,7 @@ export default function App() {
                                 className={cn(buttonVariants({ variant: 'destructive' }))}
                                 onClick={() => handleRemoveOriginal(file)}
                               >
-                                <Trash className="size-4" weight="duotone" />
+                                <Trash className="size-4" />
                                 Remove Original
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -584,7 +578,7 @@ export default function App() {
                           className="h-5 w-5 bg-primary text-primary-foreground rounded-full flex justify-center items-center absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           onClick={() => onRemoveFile(file)}
                         >
-                          <Trash className="size-3" weight="duotone" />
+                          <Trash className="size-3" />
                         </button>
                       </div>
                     </div>
