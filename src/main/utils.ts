@@ -2,63 +2,15 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 import sharp from 'sharp'
-import { spawn } from 'child_process'
+// import { spawn } from 'child_process'
 import { app, BrowserWindow } from 'electron'
 import { download } from 'electron-dl'
 import unzipper from 'unzipper'
+import { execa } from 'execa'
 
 import { ImageCompressionSettings, VideoCompressionSettings } from '../shared/types'
 import { mapRange } from '../shared/utils'
 import { DEPENDENCIES } from '../shared/config'
-
-interface ExecaResult {
-  stdout: string
-  stderr: string
-  exitCode: number
-}
-
-interface ExecaProcess extends Promise<ExecaResult> {
-  stdout?: NodeJS.ReadableStream
-  stderr?: NodeJS.ReadableStream
-  kill?: () => void
-}
-
-function execa(command: string, args: string[] = []): ExecaProcess {
-  let stdout = ''
-  let stderr = ''
-
-  const childProcess = spawn(command, args, { shell: false })
-
-  childProcess.stdout?.on('data', (data) => {
-    stdout += data.toString()
-  })
-
-  childProcess.stderr?.on('data', (data) => {
-    stderr += data.toString()
-  })
-
-  const promise = new Promise<ExecaResult>((resolve, reject) => {
-    childProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr, exitCode: code || 0 })
-      } else {
-        const error = new Error(`Command failed with exit code ${code}`)
-        Object.assign(error, { stdout, stderr, exitCode: code || 1 })
-        reject(error)
-      }
-    })
-
-    childProcess.on('error', (err) => {
-      reject(Object.assign(err, { stdout, stderr, exitCode: 1 }))
-    })
-  }) as ExecaProcess
-
-  promise.stdout = childProcess.stdout
-  promise.stderr = childProcess.stderr
-  promise.kill = () => childProcess.kill()
-
-  return promise
-}
 
 export function getFileSize(filePath: string) {
   return fs.statSync(filePath).size
