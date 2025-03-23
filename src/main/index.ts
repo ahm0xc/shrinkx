@@ -2,11 +2,13 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { basename, join, extname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import * as fs from 'fs'
+import DownloadManager from 'electron-download-manager'
 
 import {
   checkDependencies,
   compressImage,
   compressVideo,
+  getDependenciesFolderPath,
   getImagePreview,
   getVideoPreview,
   installDependencies,
@@ -14,6 +16,10 @@ import {
 } from './utils'
 import icon from '../../resources/icon.png?asset'
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, ALL_EXTENSIONS } from '../shared/config'
+
+DownloadManager.register({
+  downloadFolder: getDependenciesFolderPath()
+})
 
 let mainWindow: BrowserWindow | null = null
 

@@ -7,7 +7,6 @@ const api = {
   getFilesStats: (filePaths: string[]) => ipcRenderer.invoke('get-files-stats', { filePaths }),
   getFilePreview: (filePath: string) => ipcRenderer.invoke('get-file-preview', { filePath }),
   showItemInFolder: (path: string) => ipcRenderer.invoke('show-item-in-folder', { path }),
-  removeFile: (path: string) => ipcRenderer.invoke('remove-file', { path }),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', { url }),
   validateLicenseKey: (licenseKey: string) =>
     ipcRenderer.invoke('validate-license-key', { licenseKey }),

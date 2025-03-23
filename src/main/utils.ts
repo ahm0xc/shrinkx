@@ -2,15 +2,63 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 import sharp from 'sharp'
-// import { spawn } from 'child_process'
+import { spawn } from 'child_process'
 import { app, BrowserWindow } from 'electron'
-import { download } from 'electron-dl'
 import unzipper from 'unzipper'
-import { execa } from 'execa'
+import DownloadManager from 'electron-download-manager'
 
 import { ImageCompressionSettings, VideoCompressionSettings } from '../shared/types'
 import { mapRange } from '../shared/utils'
 import { DEPENDENCIES } from '../shared/config'
+
+interface ExecaResult {
+  stdout: string
+  stderr: string
+  exitCode: number
+}
+
+interface ExecaProcess extends Promise<ExecaResult> {
+  stdout?: NodeJS.ReadableStream
+  stderr?: NodeJS.ReadableStream
+  kill?: () => void
+}
+
+function execa(command: string, args: string[] = []): ExecaProcess {
+  let stdout = ''
+  let stderr = ''
+
+  const childProcess = spawn(command, args, { shell: false })
+
+  childProcess.stdout?.on('data', (data) => {
+    stdout += data.toString()
+  })
+
+  childProcess.stderr?.on('data', (data) => {
+    stderr += data.toString()
+  })
+
+  const promise = new Promise<ExecaResult>((resolve, reject) => {
+    childProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr, exitCode: code || 0 })
+      } else {
+        const error = new Error(`Command failed with exit code ${code}`)
+        Object.assign(error, { stdout, stderr, exitCode: code || 1 })
+        reject(error)
+      }
+    })
+
+    childProcess.on('error', (err) => {
+      reject(Object.assign(err, { stdout, stderr, exitCode: 1 }))
+    })
+  }) as ExecaProcess
+
+  promise.stdout = childProcess.stdout
+  promise.stderr = childProcess.stderr
+  promise.kill = () => childProcess.kill()
+
+  return promise
+}
 
 export function getFileSize(filePath: string) {
   return fs.statSync(filePath).size
@@ -43,7 +91,6 @@ export function emptyFolder(folderPath: string) {
 }
 
 export function unzip(zipPath: string, outputFolderPath: string) {
-  console.log('🚀 ~ unzip ~ outputFolderPath:', outputFolderPath)
   return new Promise((resolve, reject) => {
     fs.createReadStream(zipPath)
       .pipe(unzipper.Extract({ path: outputFolderPath }))
@@ -61,6 +108,46 @@ export function unzip(zipPath: string, outputFolderPath: string) {
 export function getExecutablePath(dependencyName: string) {
   const dependenciesFolderPath = getDependenciesFolderPath()
   return path.join(dependenciesFolderPath, dependencyName)
+}
+
+interface DownloadProgress {
+  downloaded: string
+  downloadedBytes: number
+  progress: number
+  remaining: string
+  remainingBytes: number
+  speed: string
+  speedBytes: number
+  total: string
+  totalBytes: number
+}
+
+interface DownloadOptions {
+  onProgress?: (progress: DownloadProgress) => void
+  onComplete?: () => void
+  onError?: (error: Error) => void
+}
+
+export function download(url: string, options: DownloadOptions) {
+  return new Promise((resolve, reject) =>
+    DownloadManager.download(
+      {
+        url,
+        onProgress: (progress: DownloadProgress) => {
+          options.onProgress?.(progress)
+        }
+      },
+      (error, info: { url: string; filePath: string }) => {
+        if (error) {
+          options.onError?.(error)
+          reject(error)
+        } else {
+          options.onComplete?.()
+          resolve(info)
+        }
+      }
+    )
+  )
 }
 
 export async function compressImage(
@@ -340,7 +427,7 @@ export async function getVideoPreview(videoPath: string): Promise<string | null>
   }
 }
 
-function getDependenciesFolderPath() {
+export function getDependenciesFolderPath() {
   return path.join(app.getPath('home'), '.ShrinkX_Dependencies')
 }
 
@@ -367,20 +454,32 @@ export async function installDependencies({
     for (let i = 0; i < missingDependencies.length && shouldLoop; i++) {
       const zip = missingDependencies[i]
 
-      await download(focusedWindow, zip.url, {
-        filename: `${zip.name}.zip`,
-        directory: dependenciesFolderPath,
+      await download(zip.url, {
         onProgress: (progress) => {
           onProgress?.(
-            (progress.percent * 100) / missingDependencies.length +
-              i * (100 / missingDependencies.length)
+            progress.progress / missingDependencies.length + i * (100 / missingDependencies.length)
           )
         },
-        onCancel: () => {
-          onError?.('Failed to download dependencies')
+        onError: () => {
           shouldLoop = false
+          onError?.('Failed to download dependencies')
         }
       })
+
+      // await download(focusedWindow, zip.url, {
+      //   filename: `${zip.name}.zip`,
+      //   directory: dependenciesFolderPath,
+      //   onProgress: (progress) => {
+      //     onProgress?.(
+      //       (progress.percent * 100) / missingDependencies.length +
+      //         i * (100 / missingDependencies.length)
+      //     )
+      //   },
+      //   onCancel: () => {
+      //     onError?.('Failed to download dependencies')
+      //     shouldLoop = false
+      //   }
+      // })
 
       await unzip(path.join(dependenciesFolderPath, `${zip.name}.zip`), dependenciesFolderPath)
       deleteFile(path.join(dependenciesFolderPath, `${zip.name}.zip`))
