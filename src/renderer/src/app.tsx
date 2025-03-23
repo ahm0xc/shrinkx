@@ -456,6 +456,62 @@ export default function App() {
     window.api.removeFile(file.path)
   }, [])
 
+  React.useEffect(() => {
+    const handleDrop = async (event: DragEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
+
+      const droppedFiles = event.dataTransfer?.files
+      if (!droppedFiles || droppedFiles.length === 0) return
+
+      const filePaths = Array.from(droppedFiles)
+        .map((file) => file.path)
+        .filter(Boolean)
+      if (filePaths.length === 0) return
+
+      try {
+        const fileStats = await window.api.getFilesStats(filePaths)
+        const filePreviews = await Promise.all(
+          fileStats.map((stat) => window.api.getFilePreview(stat.path))
+        )
+
+        const newFiles: CustomFile[] = fileStats.map((stat, index) => {
+          const extension = getFileExtension(stat.name)
+          const isImage = IMAGE_EXTENSIONS.includes(extension ?? '')
+          const isVideo = VIDEO_EXTENSIONS.includes(extension ?? '')
+
+          return {
+            id: nanoid(),
+            name: stat.name,
+            path: stat.path,
+            size: stat.size,
+            isCompressed: false,
+            progress: 0,
+            filetype: isImage ? 'image' : isVideo ? 'video' : 'unknown',
+            preview: filePreviews[index] ?? undefined
+          }
+        })
+
+        setFiles((prevFiles) => [...newFiles, ...prevFiles])
+      } catch (error) {
+        console.error('Error processing dropped files:', error)
+      }
+    }
+
+    const handleDragOver = (event: DragEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
+    document.addEventListener('drop', handleDrop)
+    document.addEventListener('dragover', handleDragOver)
+
+    return () => {
+      document.removeEventListener('drop', handleDrop)
+      document.removeEventListener('dragover', handleDragOver)
+    }
+  }, [])
+
   return (
     <React.Fragment>
       <OnBoardingModal />
@@ -468,7 +524,7 @@ export default function App() {
                 // isDragActive && 'border-green-500/50 bg-green-500/10'
               )}
             >
-              <div className="flex gap-0 text-foreground/50">
+              <div className="flex gap-0 text-foreground">
                 <FileImage className="-rotate-12 w-[10vw] h-[10vw] translate-x-1/4" />
                 <FileZip className="rotate-0 w-[10vw] h-[10vw]" />
                 <FileVideo className="rotate-12 w-[10vw] h-[10vw] -translate-x-1/4" />

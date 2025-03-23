@@ -39,7 +39,9 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: true
+      nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false
     }
   })
 
@@ -86,6 +88,10 @@ app.whenReady().then(() => {
     })
 
     return result.filePaths
+  })
+
+  ipcMain.handle('remove-file', async (_event, { path }) => {
+    fs.unlinkSync(path)
   })
 
   ipcMain.handle('get-files-stats', async (_event, { filePaths }) => {
