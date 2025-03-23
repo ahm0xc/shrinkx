@@ -1,9 +1,10 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+  getFilePath: (file: File) => webUtils.getPathForFile(file),
   getFilesStats: (filePaths: string[]) => ipcRenderer.invoke('get-files-stats', { filePaths }),
   getFilePreview: (filePath: string) => ipcRenderer.invoke('get-file-preview', { filePath }),
   showItemInFolder: (path: string) => ipcRenderer.invoke('show-item-in-folder', { path }),

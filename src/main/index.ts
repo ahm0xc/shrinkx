@@ -40,8 +40,7 @@ function createWindow(): void {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: true,
-      allowRunningInsecureContent: false
+      webSecurity: true
     }
   })
 
@@ -124,10 +123,6 @@ app.whenReady().then(() => {
     }
 
     return null
-  })
-
-  ipcMain.handle('remove-file', async (_event, { path }) => {
-    fs.unlinkSync(path)
   })
 
   ipcMain.handle('show-item-in-folder', async (_event, { path }) => {

@@ -14,6 +14,7 @@ declare global {
     electron: ElectronAPI
     api: {
       openFileDialog: () => Promise<string[]>
+      getFilePath: (file: File) => Promise<string | null>
       getFilesStats: (filePaths: string[]) => Promise<FileStats[]>
       getFilePreview: (filePath: string) => Promise<string | null>
       showItemInFolder: (path: string) => Promise<void>

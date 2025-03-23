@@ -417,8 +417,7 @@ export default function App() {
     }
   }, [files, compressFile])
 
-  async function openFileDialog() {
-    const filePaths = await window.api.openFileDialog()
+  async function processFiles(filePaths: string[]) {
     const fileStats = await window.api.getFilesStats(filePaths)
     const filePreviews = await Promise.all(
       fileStats.map((stat) => window.api.getFilePreview(stat.path))
@@ -444,6 +443,11 @@ export default function App() {
     setFiles((prevFiles) => [...newFiles, ...prevFiles])
   }
 
+  async function openFileDialog() {
+    const filePaths = await window.api.openFileDialog()
+    await processFiles(filePaths)
+  }
+
   const openFolder = React.useCallback((file: CustomFile) => {
     if (!file.outputPath) return
     console.log('opening...', file.outputPath)
@@ -457,58 +461,41 @@ export default function App() {
   }, [])
 
   React.useEffect(() => {
-    const handleDrop = async (event: DragEvent) => {
-      event.preventDefault()
-      event.stopPropagation()
+    function preventDefaults(e: Event) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
 
-      const droppedFiles = event.dataTransfer?.files
-      if (!droppedFiles || droppedFiles.length === 0) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async function handleDrop(e: any) {
+      e.preventDefault()
+      e.stopPropagation()
 
-      const filePaths = Array.from(droppedFiles)
-        .map((file) => file.path)
-        .filter(Boolean)
-      if (filePaths.length === 0) return
+      const files = e.dataTransfer?.files
 
-      try {
-        const fileStats = await window.api.getFilesStats(filePaths)
-        const filePreviews = await Promise.all(
-          fileStats.map((stat) => window.api.getFilePreview(stat.path))
-        )
-
-        const newFiles: CustomFile[] = fileStats.map((stat, index) => {
-          const extension = getFileExtension(stat.name)
-          const isImage = IMAGE_EXTENSIONS.includes(extension ?? '')
-          const isVideo = VIDEO_EXTENSIONS.includes(extension ?? '')
-
-          return {
-            id: nanoid(),
-            name: stat.name,
-            path: stat.path,
-            size: stat.size,
-            isCompressed: false,
-            progress: 0,
-            filetype: isImage ? 'image' : isVideo ? 'video' : 'unknown',
-            preview: filePreviews[index] ?? undefined
-          }
-        })
-
-        setFiles((prevFiles) => [...newFiles, ...prevFiles])
-      } catch (error) {
-        console.error('Error processing dropped files:', error)
+      const filePaths: string[] = []
+      for (const file of files) {
+        const filePath = await window.api.getFilePath(file)
+        if (filePath) filePaths.push(filePath)
       }
+
+      await processFiles(filePaths)
     }
 
-    const handleDragOver = (event: DragEvent) => {
-      event.preventDefault()
-      event.stopPropagation()
-    }
+    const events = ['dragenter', 'dragover', 'dragleave', 'drop']
 
-    document.addEventListener('drop', handleDrop)
-    document.addEventListener('dragover', handleDragOver)
+    events.forEach((eventName) => {
+      document.body.addEventListener(eventName, preventDefaults, false)
+    })
+
+    document.body.addEventListener('drop', handleDrop, false)
 
     return () => {
-      document.removeEventListener('drop', handleDrop)
-      document.removeEventListener('dragover', handleDragOver)
+      events.forEach((eventName) => {
+        document.body.removeEventListener(eventName, preventDefaults, false)
+      })
+
+      document.body.removeEventListener('drop', handleDrop, false)
     }
   }, [])
 
