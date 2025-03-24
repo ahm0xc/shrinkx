@@ -1,16 +1,16 @@
 import React from 'react'
 import { CrownIcon, LogOutIcon, MoonIcon, SunIcon } from 'lucide-react'
 
-import { Dialog, DialogTitle, DialogContent, DialogTrigger } from './ui/dialog'
-import LicenseModalContent from './modals/license-modal-content'
+import { Dialog, DialogTitle, DialogContent, DialogTrigger } from '@renderer/components/ui/dialog'
+import LicenseModalContent from '@renderer/components/modals/license-modal-content'
 import { useAuth } from '@renderer/context/auth-context'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
-} from './ui/dropdown-menu'
-import { useTheme } from './theme-provider'
+} from '@renderer/components/ui/dropdown-menu'
+import { useTheme } from '@renderer/components/theme-provider'
 
 export default function MenuBarDragArea() {
   const [isLicenseModalOpen, setIsLicenseModalOpen] = React.useState(false)

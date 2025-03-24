@@ -17,9 +17,12 @@ export type VideoCompressionSettings = {
   removeAudio: boolean
 }
 
+export type Platform = 'macos' | 'windows' | 'linux'
+
 export type Dependency = {
   name: string
   url: string
   size: number
   executable: boolean
+  platform: Platform
 }

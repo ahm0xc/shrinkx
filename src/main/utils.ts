@@ -6,9 +6,10 @@ import { spawn } from 'child_process'
 import { app, BrowserWindow } from 'electron'
 import unzipper from 'unzipper'
 import DownloadManager from 'electron-download-manager'
+import { platform } from '@electron-toolkit/utils'
 
-import { ImageCompressionSettings, VideoCompressionSettings } from '../shared/types'
-import { mapRange } from '../shared/utils'
+import { ImageCompressionSettings, Platform, VideoCompressionSettings } from '../shared/types'
+import { mapRange, tryCatch } from '../shared/utils'
 import { DEPENDENCIES } from '../shared/config'
 
 interface ExecaResult {
@@ -110,6 +111,12 @@ export function getExecutablePath(dependencyName: string) {
   return path.join(dependenciesFolderPath, dependencyName)
 }
 
+export function getPlatform(): Platform {
+  if (platform.isMacOS) return 'macos'
+  if (platform.isWindows) return 'windows'
+  return 'linux'
+}
+
 interface DownloadProgress {
   downloaded: string
   downloadedBytes: number
@@ -128,8 +135,13 @@ interface DownloadOptions {
   onError?: (error: Error) => void
 }
 
-export function download(url: string, options: DownloadOptions) {
-  return new Promise((resolve, reject) =>
+interface DownloadInfo {
+  url: string
+  filePath: string
+}
+
+export async function download(url: string, options: DownloadOptions) {
+  const downloadPromise = new Promise((resolve, reject) =>
     DownloadManager.download(
       {
         url,
@@ -148,6 +160,16 @@ export function download(url: string, options: DownloadOptions) {
       }
     )
   )
+
+  return await tryCatch<DownloadInfo>(downloadPromise as Promise<DownloadInfo>)
+}
+
+export function getFFMPEGPath() {
+  return getExecutablePath(platform.isWindows ? 'ffmpeg.exe' : 'ffmpeg')
+}
+
+export function getFFPROBEPath() {
+  return getExecutablePath(platform.isWindows ? 'ffprobe.exe' : 'ffprobe')
 }
 
 export async function compressImage(
@@ -224,8 +246,8 @@ export async function compressVideo(
     }) => void
   }
 ) {
-  const ffmpegPath = getExecutablePath('ffmpeg')
-  const ffprobePath = getExecutablePath('ffprobe')
+  const ffmpegPath = getFFMPEGPath()
+  const ffprobePath = getFFPROBEPath()
 
   if (!ffmpegPath || !ffprobePath) {
     throw new Error('ffmpeg or ffprobe binaries not found')
@@ -383,7 +405,7 @@ export async function getImagePreview(imagePath: string): Promise<string | null>
 }
 
 export async function getVideoPreview(videoPath: string): Promise<string | null> {
-  const ffmpegPath = getExecutablePath('ffmpeg')
+  const ffmpegPath = getFFMPEGPath()
 
   if (!ffmpegPath) {
     throw new Error('ffmpeg binary not found')
@@ -448,13 +470,12 @@ export async function installDependencies({
     if (!focusedWindow) throw new Error('No focused window found')
 
     const { missingDependencies } = checkDependencies()
-    console.log('🚀 ~ missingDependencies:', missingDependencies)
 
     let shouldLoop = true
     for (let i = 0; i < missingDependencies.length && shouldLoop; i++) {
       const zip = missingDependencies[i]
 
-      await download(zip.url, {
+      const { data: downloadInfo, error } = await download(zip.url, {
         onProgress: (progress) => {
           onProgress?.(
             progress.progress / missingDependencies.length + i * (100 / missingDependencies.length)
@@ -466,25 +487,16 @@ export async function installDependencies({
         }
       })
 
-      // await download(focusedWindow, zip.url, {
-      //   filename: `${zip.name}.zip`,
-      //   directory: dependenciesFolderPath,
-      //   onProgress: (progress) => {
-      //     onProgress?.(
-      //       (progress.percent * 100) / missingDependencies.length +
-      //         i * (100 / missingDependencies.length)
-      //     )
-      //   },
-      //   onCancel: () => {
-      //     onError?.('Failed to download dependencies')
-      //     shouldLoop = false
-      //   }
-      // })
+      if (error) {
+        shouldLoop = false
+        onError?.(error.message)
+        break
+      }
 
-      await unzip(path.join(dependenciesFolderPath, `${zip.name}.zip`), dependenciesFolderPath)
-      deleteFile(path.join(dependenciesFolderPath, `${zip.name}.zip`))
+      await unzip(downloadInfo.filePath, dependenciesFolderPath)
+      deleteFile(downloadInfo.filePath)
 
-      if (zip.executable) {
+      if (zip.executable && platform.isMacOS) {
         await execa('chmod', ['+x', path.join(dependenciesFolderPath, zip.name)])
       }
     }
@@ -498,8 +510,14 @@ export async function installDependencies({
 export function checkDependencies() {
   const dependenciesFolderPath = getDependenciesFolderPath()
   const files = fs.readdirSync(dependenciesFolderPath)
-  const missingDependencies = DEPENDENCIES.filter((dep) => {
+  let missingDependencies = DEPENDENCIES.filter((dep) => {
     return !files.some((file) => file.startsWith(dep.name))
+  })
+
+  const platform = getPlatform()
+
+  missingDependencies = missingDependencies.filter((dep) => {
+    return dep.platform === platform
   })
 
   return {

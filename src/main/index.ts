@@ -79,11 +79,7 @@ app.whenReady().then(() => {
   ipcMain.handle('open-file-dialog', async () => {
     const result = await dialog.showOpenDialog(mainWindow!, {
       properties: ['openFile', 'multiSelections'],
-      filters: [
-        // { name: 'Images', extensions: IMAGE_EXTENSIONS },
-        // { name: 'Videos', extensions: VIDEO_EXTENSIONS },
-        { name: 'All Supported Files', extensions: ALL_EXTENSIONS }
-      ]
+      filters: [{ name: 'All Supported Files', extensions: ALL_EXTENSIONS }]
     })
 
     return result.filePaths
