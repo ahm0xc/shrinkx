@@ -366,6 +366,7 @@ export async function compressVideo(
 
           // Calculate actual percentage
           const progress = Math.min((currentTimeInSeconds / totalDurationInSeconds) * 100, 100)
+          console.log('🛠️ progress', progress)
           onProgress(progress)
         }
       })

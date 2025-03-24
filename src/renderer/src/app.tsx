@@ -416,7 +416,7 @@ export default function App() {
     } finally {
       setIsCompressing(false)
     }
-  }, [files, compressFile])
+  }, [files, compressFile, settingsConfig])
 
   async function processFiles(filePaths: string[]) {
     const fileStats = await window.api.getFilesStats(filePaths)
