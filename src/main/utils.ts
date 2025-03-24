@@ -309,6 +309,7 @@ export async function compressVideo(
       console.log(`Video bitrate: ${videoBitrate} bps (${videoBitrateInMbps} Mbps)`)
 
       const totalDurationInSeconds = parseFloat(durationProcess.stdout) || 0
+      console.log('🚀 ~ awaitnewPromise ~ totalDurationInSeconds:', totalDurationInSeconds)
 
       const ffmpegArgs: string[] = []
 
@@ -351,6 +352,8 @@ export async function compressVideo(
       }
 
       ffmpegArgs.push(outputPath)
+
+      console.log('🛠️ command', ffmpegPath, ffmpegArgs.join(' '))
 
       const process = execa(ffmpegPath, ffmpegArgs)
 
