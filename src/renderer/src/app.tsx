@@ -418,7 +418,7 @@ export default function App() {
     }
   }, [files, compressFile, settingsConfig])
 
-  async function processFiles(filePaths: string[]) {
+  const processFiles = React.useCallback(async (filePaths: string[]) => {
     const fileStats = await window.api.getFilesStats(filePaths)
     const filePreviews = await Promise.all(
       fileStats.map((stat) => window.api.getFilePreview(stat.path))
@@ -442,12 +442,12 @@ export default function App() {
     })
 
     setFiles((prevFiles) => [...newFiles, ...prevFiles])
-  }
+  }, [])
 
-  async function openFileDialog() {
+  const openFileDialog = React.useCallback(async () => {
     const filePaths = await window.api.openFileDialog()
     await processFiles(filePaths)
-  }
+  }, [processFiles])
 
   const openFolder = React.useCallback((file: CustomFile) => {
     if (!file.outputPath) return

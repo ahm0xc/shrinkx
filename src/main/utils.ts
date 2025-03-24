@@ -331,7 +331,7 @@ export async function compressVideo(
       }
 
       if (settings.compressionQuality) {
-        const crf = mapRange(settings.compressionQuality ?? 40, 0, 100, 24, 40)
+        const crf = mapRange(settings.compressionQuality, 0, 100, 24, 40)
         ffmpegArgs.push('-crf', crf.toString())
       }
 
