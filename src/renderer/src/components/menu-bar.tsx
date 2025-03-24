@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger
 } from './ui/dropdown-menu'
 import { useTheme } from './theme-provider'
-import { Button } from './ui/button'
 
 export default function MenuBarDragArea() {
   const [isLicenseModalOpen, setIsLicenseModalOpen] = React.useState(false)
