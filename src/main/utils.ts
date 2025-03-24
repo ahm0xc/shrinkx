@@ -450,7 +450,11 @@ export async function getVideoPreview(videoPath: string): Promise<string | null>
 }
 
 export function getDependenciesFolderPath() {
-  return path.join(app.getPath('home'), '.ShrinkX_Dependencies')
+  const dependenciesFolderPath = path.join(app.getPath('home'), '.ShrinkX_Dependencies')
+  if (!fs.existsSync(dependenciesFolderPath)) {
+    createFolder(dependenciesFolderPath)
+  }
+  return dependenciesFolderPath
 }
 
 export async function installDependencies({
