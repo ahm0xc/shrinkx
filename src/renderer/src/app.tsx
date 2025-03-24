@@ -54,6 +54,7 @@ export default function App() {
       removeAudio: false
     }
   })
+  const [isDragActive, setIsDragActive] = React.useState(false)
 
   const settingsTabs = React.useMemo(
     () =>
@@ -483,9 +484,19 @@ export default function App() {
     }
 
     const events = ['dragenter', 'dragover', 'dragleave', 'drop']
+    const highlightEvents = ['dragenter', 'dragover']
+    const unhighlightEvents = ['dragleave', 'drop']
 
     events.forEach((eventName) => {
       document.body.addEventListener(eventName, preventDefaults, false)
+    })
+
+    highlightEvents.forEach((eventName) => {
+      document.body.addEventListener(eventName, () => setIsDragActive(true), false)
+    })
+
+    unhighlightEvents.forEach((eventName) => {
+      document.body.addEventListener(eventName, () => setIsDragActive(false), false)
     })
 
     document.body.addEventListener('drop', handleDrop, false)
@@ -495,6 +506,13 @@ export default function App() {
         document.body.removeEventListener(eventName, preventDefaults, false)
       })
 
+      highlightEvents.forEach((eventName) => {
+        document.body.removeEventListener(eventName, () => setIsDragActive(true), false)
+      })
+
+      unhighlightEvents.forEach((eventName) => {
+        document.body.removeEventListener(eventName, () => setIsDragActive(false), false)
+      })
       document.body.removeEventListener('drop', handleDrop, false)
     }
   }, [])
@@ -507,8 +525,8 @@ export default function App() {
           <div className="w-full flex-1 bg-foreground/5 rounded-[40px]">
             <div
               className={cn(
-                'w-full h-full flex items-center border-4 border-dashed border-transparent justify-center flex-col rounded-[inherit]'
-                // isDragActive && 'border-green-500/50 bg-green-500/10'
+                'w-full h-full flex items-center border-4 border-dashed border-transparent justify-center flex-col rounded-[inherit]',
+                isDragActive && 'border-green-500/50 bg-green-500/10'
               )}
             >
               <div className="flex gap-0 text-foreground">
