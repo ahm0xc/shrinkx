@@ -549,7 +549,7 @@ export default function App() {
                 {files.map((file) => {
                   return (
                     <div key={file.id}>
-                      <div className="flex items-center gap-2 bg-foreground/10 rounded-md p-2 min-w-[200px] relative group">
+                      <div className="flex items-center gap-2 bg-foreground/5 rounded-md p-2 min-w-[200px] relative group">
                         <div className="relative">
                           {file.preview && (
                             <img
@@ -561,7 +561,7 @@ export default function App() {
                           {file.outputPath && (
                             <button
                               type="button"
-                              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md p-3"
+                              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md p-3 text-white"
                               onClick={() => openFolder(file)}
                               title="Open folder"
                             >
@@ -594,7 +594,12 @@ export default function App() {
                               </span>
                             )}
                           </p>
-                          <div className="bg-primary/5 h-1 rounded-full mt-0.5">
+                          <div
+                            className={cn(
+                              'bg-primary/5 h-1 rounded-full mt-0.5',
+                              file.progress === 0 && 'opacity-0'
+                            )}
+                          >
                             <div
                               className={cn(
                                 'h-full bg-primary rounded-[inherit]',
@@ -693,9 +698,6 @@ export default function App() {
                 <Button className="w-full" disabled={isCompressing} onClick={handleCompress}>
                   Compress
                 </Button>
-                <p className="text-sm text-foreground/50 text-center mt-2">
-                  Estimated time: ~2 minutes
-                </p>
               </div>
             </div>
           </div>

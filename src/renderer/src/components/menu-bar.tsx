@@ -1,5 +1,5 @@
 import React from 'react'
-import { CrownIcon, LogOutIcon } from 'lucide-react'
+import { CrownIcon, LogOutIcon, MoonIcon, SunIcon } from 'lucide-react'
 
 import { Dialog, DialogTitle, DialogContent, DialogTrigger } from './ui/dialog'
 import LicenseModalContent from './modals/license-modal-content'
@@ -10,6 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from './ui/dropdown-menu'
+import { useTheme } from './theme-provider'
+import { Button } from './ui/button'
 
 export default function MenuBarDragArea() {
   const [isLicenseModalOpen, setIsLicenseModalOpen] = React.useState(false)
@@ -48,6 +50,8 @@ export default function MenuBarDragArea() {
             </Dialog>
           )}
 
+          <ThemeToggle />
+
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -66,5 +70,19 @@ export default function MenuBarDragArea() {
         </div>
       </div>
     </div>
+  )
+}
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+
+  return (
+    <button
+      type="button"
+      className="p-1"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+    >
+      {theme === 'dark' ? <SunIcon className="size-3" /> : <MoonIcon className="size-3" />}
+    </button>
   )
 }
