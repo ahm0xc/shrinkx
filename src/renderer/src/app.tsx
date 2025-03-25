@@ -20,6 +20,7 @@ import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../shared/config'
 import { CompressionSettings } from '../../shared/types'
 import OnBoardingModal from './components/modals/onboarding-modal'
 import UpdateNotifier from './components/update-notifier'
+import { useAuth } from './context/auth-context'
 
 type CustomFile = {
   id: string
@@ -56,6 +57,8 @@ export default function App() {
     }
   })
   const [isDragActive, setIsDragActive] = React.useState(false)
+
+  const { licenseKey } = useAuth()
 
   const settingsTabs = React.useMemo(
     () =>
@@ -395,9 +398,15 @@ export default function App() {
   )
 
   const handleCompress = React.useCallback(async () => {
-    setIsCompressing(true)
+    const currentCompressCount = parseInt(window.localStorage.getItem('compress-count') ?? '0')
+
+    if (currentCompressCount >= 10 && !licenseKey) {
+      alert('Please upgrade to a pro license to continue.')
+      return
+    }
 
     try {
+      setIsCompressing(true)
       // Sort files to prioritize images
       const sortedFiles = [...files].sort((a, b) => {
         if (a.filetype === 'image' && b.filetype !== 'image') return -1
@@ -412,6 +421,9 @@ export default function App() {
       for (const file of filesToCompress) {
         await compressFile(file)
       }
+
+      const newCompressCount = currentCompressCount + 1
+      window.localStorage.setItem('compress-count', newCompressCount.toString())
     } catch (error) {
       console.error('Compression failed:', error)
     } finally {

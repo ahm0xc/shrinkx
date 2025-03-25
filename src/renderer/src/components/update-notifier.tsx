@@ -33,7 +33,7 @@ export default function UpdateNotifier() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 w-[320px] bg-blue-700 dark:bg-blue-600 border rounded-lg p-4">
+    <div className="fixed bottom-4 left-4 w-[320px] bg-blue-700 dark:bg-blue-600 border rounded-lg p-4 z-10">
       <div className="space-y-4">
         <div className="space-y-1">
           <h1 className="text-neutral-50 font-medium">

@@ -101,9 +101,18 @@ export default function LicenseModalContent({
         <Button size="lg" className="w-full" onClick={handleActivation}>
           {isValidating ? 'Validating...' : 'Activate'}
         </Button>
-        <Button variant="link" className="text-muted-foreground" onClick={onSkip}>
-          skip for now
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="link" className="text-muted-foreground" onClick={onSkip}>
+            skip for now
+          </Button>
+          <Button
+            variant="link"
+            className="text-muted-foreground"
+            onClick={() => window.api.openExternal('https://tryshrinkx.com/pricing')}
+          >
+            Buy license
+          </Button>
+        </div>
       </div>
     </section>
   )
