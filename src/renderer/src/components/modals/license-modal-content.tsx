@@ -54,7 +54,7 @@ export default function LicenseModalContent({
           Please enter your license key to continue. Don&apos;t have a license?{' '}
           <span
             className="text-primary cursor-pointer hover:underline"
-            onClick={() => window.api.openExternal('https://shrinkx.vercel.app/pricing')}
+            onClick={() => window.api.openExternal('https://tryshrinkx.com/pricing')}
           >
             Buy one.
           </span>
