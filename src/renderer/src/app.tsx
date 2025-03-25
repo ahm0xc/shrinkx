@@ -634,6 +634,7 @@ export default function App() {
                               <DropdownMenuItem
                                 className={cn(buttonVariants({ variant: 'destructive' }))}
                                 onClick={() => handleRemoveOriginal(file)}
+                                disabled={isCompressing}
                               >
                                 <Trash className="size-4" />
                                 Remove Original
