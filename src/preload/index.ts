@@ -12,7 +12,9 @@ const api = {
   validateLicenseKey: (licenseKey: string) =>
     ipcRenderer.invoke('validate-license-key', { licenseKey }),
   checkDependencies: () => ipcRenderer.invoke('check-dependencies'),
-  removeFile: (path: string) => ipcRenderer.invoke('remove-file', { path })
+  removeFile: (path: string) => ipcRenderer.invoke('remove-file', { path }),
+  getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
+  getLatestRelease: () => ipcRenderer.invoke('get-latest-release')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

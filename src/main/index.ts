@@ -8,8 +8,10 @@ import {
   checkDependencies,
   compressImage,
   compressVideo,
+  getCurrentVersion,
   getDependenciesFolderPath,
   getImagePreview,
+  getLatestRelease,
   getVideoPreview,
   installDependencies,
   validateLicenseKey
@@ -136,6 +138,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle('check-dependencies', async () => {
     return await checkDependencies()
+  })
+
+  ipcMain.handle('get-current-version', async () => {
+    return await getCurrentVersion()
+  })
+
+  ipcMain.handle('get-latest-release', async () => {
+    return await getLatestRelease()
   })
 
   ipcMain.on('compress-image', async (event, { id, path, settings }) => {

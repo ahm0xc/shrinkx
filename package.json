@@ -1,7 +1,7 @@
 {
-  "name": "shrinkx-v1",
+  "name": "shrinkx",
   "version": "0.0.1",
-  "description": "An Electron application with React and TypeScript",
+  "description": "",
   "main": "./out/main/index.js",
   "author": "ahm0xc",
   "homepage": "https://github.com/ahm0xc/shrinkx",

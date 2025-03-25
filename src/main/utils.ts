@@ -569,3 +569,35 @@ export async function validateLicenseKey(licenseKey: string): Promise<ValidateLi
     }
   }
 }
+
+export function getCurrentVersion() {
+  return app.getVersion()
+}
+
+export async function getReleases() {
+  const response = await fetch('https://api.github.com/repos/ahm0xc/shrinkx/releases')
+  const data = await response.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formattedReleases = data.map((release: any) => ({
+    name: release.tag_name,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    assets: release.assets.map((asset: any) => ({
+      id: asset.id,
+      name: asset.name,
+      downloadUrl: asset.browser_download_url,
+      size: asset.size
+    })),
+    fileZipUrl: release.zipball_url,
+    prerelease: release.prerelease,
+    createdAt: release.created_at,
+    publishedAt: release.published_at,
+    draft: release.draft
+  }))
+  return formattedReleases
+}
+
+export async function getLatestRelease() {
+  const releases = await getReleases()
+  const latestRelease = releases.find((release) => !release.draft)
+  return latestRelease
+}

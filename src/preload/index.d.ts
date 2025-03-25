@@ -25,6 +25,12 @@ declare global {
         isInstalled: boolean
         missingDependencies: Dependency[]
       }>
+      getCurrentVersion: () => Promise<string>
+      getLatestRelease: () => Promise<{
+        name: string
+        version: string
+        url: string
+      }>
     }
   }
 }

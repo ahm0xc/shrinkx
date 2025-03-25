@@ -19,6 +19,7 @@ import {
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../shared/config'
 import { CompressionSettings } from '../../shared/types'
 import OnBoardingModal from './components/modals/onboarding-modal'
+import UpdateNotifier from './components/update-notifier'
 
 type CustomFile = {
   id: string
@@ -520,6 +521,7 @@ export default function App() {
   return (
     <React.Fragment>
       <OnBoardingModal />
+      <UpdateNotifier />
       <main className="grid grid-cols-5 h-[calc(100vh-2.5rem)] overflow-hidden">
         <section className="col-span-3 h-full p-4 pr-2 pt-0 flex flex-col gap-4">
           <div className="w-full flex-1 bg-foreground/5 rounded-[40px]">
