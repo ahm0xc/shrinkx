@@ -326,6 +326,12 @@ export async function compressVideo(
 
       ffmpegArgs.push(...baseFfmpegArgs)
 
+      if (platform.isWindows) {
+        ffmpegArgs.push('-acodec', 'aac')
+      } else {
+        ffmpegArgs.push('-acodec', 'libopus')
+      }
+
       if (settings.resolution !== 'preserve') {
         ffmpegArgs.push('-vf', `scale=${settings.resolution}`)
       }
